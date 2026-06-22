@@ -1,8 +1,6 @@
-# Wordle D&D
+# wordle-guessr
 
-Hub de jeux de devinette quotidiens dans l'univers D&D. Gratuit, sans compte, sans backend (phase 1).
-
-> 🎯 La vision complète, les principes et la roadmap sont dans [`docs/vision.md`](docs/vision.md). **À lire avant de coder.**
+Hub de jeux de devinette quotidiens sur la **scène esport** (lancement : Valorant). Deux moteurs au-dessus d'une même donnée : **Wordle** (devine le nom) et **Guessr** (devine une entité via ses attributs). Gratuit, sans compte, sans backend (phase 1).
 
 ## Prérequis
 
@@ -42,16 +40,19 @@ La page se recharge automatiquement à chaque modification.
 ## Structure & conventions
 
 ```
-app/        # routes (App Router). À venir : app/[categorie]/[longueur]/page.tsx
+app/        # routes (App Router). À venir : app/[game]/word/[length] et app/[game]/guess
+app/data/   # contenu data-driven (JSON). Ex. app/data/valorant/{teams,players}.json
 public/     # assets statiques
-docs/       # vision et notes de conception
+docs/       # vision, spec de design, guide stagiaire
 ```
 
 - **Alias d'import** : `@/` pointe sur la racine du projet (ex. `import x from "@/lib/x"`).
 - **Tests** : à côté du code testé, en `*.test.ts` / `*.test.tsx`
   (ex. `lib/rotation.ts` → `lib/rotation.test.ts`). Le runner est prêt, à toi d'écrire les tests.
-- **Contenu data-driven** : le contenu des catégories vivra dans des fichiers JSON
-  (voir le contrat de données dans [`docs/vision.md`](docs/vision.md)). Ajouter une
-  catégorie = ajouter un fichier, pas du code.
+- **Contenu data-driven** : le contenu vit dans des fichiers JSON sous `app/data/`. Chaque entité
+  suit le contrat `{ id, type, game, name, attributes }` — le `name` alimente le Wordle, les
+  `attributes` le Guessr. Ajouter un jeu = ajouter des fichiers, pas du code (voir le spec).
+- **Pas de `fetch` pour la donnée locale** (phase 1) : on `import` les JSON du repo. La bascule
+  vers une base ne viendra qu'en phase 2, motivée par un vrai besoin.
 - **Formatage** : ne te bats pas avec le style — `npm run format`, ou active _format on save_
   (config VS Code fournie dans [`.vscode/`](.vscode/)).
