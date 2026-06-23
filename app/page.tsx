@@ -11,14 +11,18 @@ export default function Home() {
 
       <h1 className="mb-6 text-3xl font-bold">{titre}</h1>
 
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {/**  Game Cards avec les différents */}
-        {games.map((game) => (
-          <li key={game.id}>
-            <GameCard label={game.label} />
-          </li>
-        ))}
-      </ul>
+    {games.length === 0 ? (
+      <p className="text-gray-500">Aucun jeux disponible</p>
+    ) : (
+        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {/**  Game Cards avec les différents */}
+          {games.map((game) => (
+            <li key={game.id}>
+              <GameCard label={game.label} />
+            </li>
+          ))}
+        </ul>
+      )}
 
     </main>
   );
