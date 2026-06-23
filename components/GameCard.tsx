@@ -1,6 +1,6 @@
 
 export default function GameCard({ label }: { label: string}) {
     return (
-        <div>{label}</div>
+        <div className="rounded-lg border p-6 text-center">{label}</div>
     );
 }
