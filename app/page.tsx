@@ -1,10 +1,11 @@
 import GameCard from "@/components/GameCard";
+import Link from 'next/link'
 
 // Fake Call API
 import { games } from "@/data/games"
 
 export default function Home() {
-  const titre = "Choisis ton jeu"
+  const titre = "Choisis ton Univers"
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -17,8 +18,10 @@ export default function Home() {
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {/**  Game Cards avec les différents */}
           {games.map((game) => (
-            <li key={game.id}>
-              <GameCard label={game.label} />
+            <li className="bg-gray-500 hover:bg-gray-700" key={game.id}>
+              <Link href={game.id}>
+                <GameCard label={game.label} />
+              </Link>
             </li>
           ))}
         </ul>

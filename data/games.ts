@@ -5,7 +5,7 @@ export type Game = {
 
 // Temporaire BDD / Call API
 export const games: Game[] = [
-    { id: "valo", label: "Valorant" },
+    { id: "val", label: "Valorant" },
     { id: "cs", label: "Counter Strike 2"},
-    { id: "rl", label: "Rocket League"},
+    { id: "fifa-l1", label: "Ligue 1"},
 ]
