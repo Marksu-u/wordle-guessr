@@ -1,0 +1,65 @@
+{
+  "game": "guessr",
+  "players": [
+    {
+      "name": "apEX",
+      "role": "IGL",
+      "age": 33,
+      "nationality": "France",
+      "started_at": "11-10-2012",
+      "retired_at": "",
+      "current_team": "Vitality",
+      "previous_teams": ["G2", "Envy", "LDLC"],
+      "prize_money": 2342802,
+      "achivements": ["4x Major Winner", "Top 18 2015", "Top 15 2014"]
+    },
+    {
+      "name": "ropz",
+      "role": "Rifler/Lurker",
+      "age": 26,
+      "nationality": "Estonia",
+      "started_at": "12-04-2017",
+      "retired_at": "",
+      "current_team": "Vitality",
+      "previous_teams": ["Faze", "Mouz"],
+      "prize_money": 2068665,
+      "achivements": ["3x Major Winner", "3x ESL Grand Slam"]
+    },
+    {
+      "name": "XTQZZZ",
+      "role": "Coach",
+      "age": 37,
+      "nationality": "France",
+      "started_at": "06-01-2015",
+      "retired_at": "",
+      "current_team": "Vitality",
+      "previous_teams": ["TSM", "G2", "Vitality"],
+      "prize_money": 0,
+      "achivements": ["2x Major Winner as Coach"]
+    },
+    {
+      "name": "mezii",
+      "role": "Rifler",
+      "age": 27,
+      "nationality": "UK",
+      "started_at": "04-03-2019",
+      "retired_at": "",
+      "current_team": "Vitality",
+      "previous_teams": ["Fnatic", "Endpoint", "Cloud9"],
+      "prize_money": 1152000,
+      "achivements": ["2x Major Winner", "Top 12 2025"]
+    },
+    {
+      "name": "flameZ",
+      "role": "Rifler/Entry Fragger",
+      "age": 23,
+      "nationality": "Izraël",
+      "started_at": "04-03-2019",
+      "retired_at": "",
+      "current_team": "Vitality",
+      "previous_teams": ["Fnatic", "Endpoint", "Cloud9"],
+      "prize_money": 1271778,
+      "achivements": ["2x Major Winner", "Top 7 2025", "Top 7 2024"]
+    }
+  ]
+}
