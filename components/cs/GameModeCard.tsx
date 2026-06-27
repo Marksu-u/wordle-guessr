@@ -4,7 +4,7 @@ type Props = {
   label: string;
   description: string;
   href: string;
-  icon: "grid" | "guess";
+  icon: "grid" | "guess" | "versus";
 };
 
 const icons: Record<Props["icon"], React.ReactNode> = {
@@ -21,6 +21,12 @@ const icons: Record<Props["icon"], React.ReactNode> = {
       <circle cx="12" cy="12" r="9" />
       <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7" />
       <path d="M12 17h.01" />
+    </>
+  ),
+  versus: (
+    <>
+      <path d="M4 5l7 7-7 7" />
+      <path d="M20 5l-7 7 7 7" />
     </>
   ),
 };
