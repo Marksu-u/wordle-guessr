@@ -3,7 +3,7 @@ export type CsMode = {
   label: string;
   description: string;
   href: string;
-  icon: "grid" | "guess";
+  icon: "grid" | "guess" | "versus";
 };
 
 // Temporaire BDD / Call API
@@ -23,5 +23,13 @@ export const csModes: CsMode[] = [
       "Retrouve le joueur pro à partir d'indices : équipe, rôle, nationalité, âge.",
     href: "/cs/guessr",
     icon: "guess",
+  },
+  {
+    id: "more-or-lessr",
+    label: "More or Lessr",
+    description:
+      "Deux pros, une stat cachée : clique sur le plus grand. Rating ou prize money, 10 rounds.",
+    href: "/cs/more-or-lessr",
+    icon: "versus",
   },
 ];
