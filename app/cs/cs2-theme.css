@@ -97,3 +97,25 @@
     transform: translateY(0);
   }
 }
+
+/* More or Lessr — entrée d'une nouvelle carte challenger + révélation de valeur. */
+@keyframes mol-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes mol-reveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

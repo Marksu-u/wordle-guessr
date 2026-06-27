@@ -10,7 +10,7 @@ const sairaCondensed = Saira_Condensed({
 
 export const metadata: Metadata = {
   title: "Counter-Strike 2 — Hub",
-  description: "Hub des mini-jeux Counter-Strike 2 : Wordle et Guessr.",
+  description: "Gamedle CS2.",
 };
 
 export default function CsLayout({
