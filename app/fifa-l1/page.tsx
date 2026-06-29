@@ -1,5 +1,5 @@
-export default function ValoPage() {
+export default function FifaPage() {
     return (
-        <h1>Rocket League</h1>
+        <h1> Ligue 1</h1>
     )
 }

@@ -12,3 +12,18 @@ export const metadata: Metadata = {
     title: "FIFA - Ligue 1",
     description: "Wordle"
 }
+
+export default function FifaPage({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html
+      lang="en"
+      className={`${sairaCondensed.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col">{children}</body>
+    </html>
+  );
+}
