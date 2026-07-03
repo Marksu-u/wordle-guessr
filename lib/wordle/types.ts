@@ -21,6 +21,7 @@ export type BoardState = {
   current: string; // saisie en cours (non soumise)
   status: GameStatus;
   invalid: boolean; // flag transitoire : déclenche le shake puis est remis à false
+  hintedChars: string[]; // caractères révélés via indice (affichés "present" au clavier)
 };
 
 // État global : tous les boards + l'onglet actif.

@@ -1,4 +1,4 @@
-import { evaluateGuess, isWin } from "@/lib/wordle/engine";
+import { deriveKeyStates, evaluateGuess, isWin } from "@/lib/wordle/engine";
 import { getGroup, isValidGuess, pickRandom } from "@/lib/wordle/selection";
 import {
   MAX_ATTEMPTS,
@@ -14,7 +14,22 @@ export type WordleAction =
   | { type: "DELETE" }
   | { type: "SUBMIT" }
   | { type: "CLEAR_INVALID" }
-  | { type: "REPLAY" };
+  | { type: "REPLAY" }
+  | { type: "HINT" }
+  | { type: "GIVE_UP" };
+
+// Caractères de la cible encore "cachés" : ni present/correct au clavier, ni déjà indicés.
+export function hintCandidates(board: BoardState): string[] {
+  const revealed = deriveKeyStates(
+    board.guesses,
+    board.evaluations,
+    board.hintedChars,
+  );
+  return [...new Set(board.target.toUpperCase())].filter((ch) => {
+    const s = revealed.get(ch) ?? "unused";
+    return s !== "present" && s !== "correct";
+  });
+}
 
 // Crée un board neuf avec un mot tiré au hasard. `exclude` sert au "Rejouer".
 export function createBoard(
@@ -30,6 +45,7 @@ export function createBoard(
     current: "",
     status: "playing",
     invalid: false,
+    hintedChars: [],
   };
 }
 
@@ -117,6 +133,22 @@ export function createWordleReducer(data: WordleData) {
 
       case "REPLAY": {
         return withBoard(state, createBoard(data, board.length, board.target));
+      }
+
+      case "HINT": {
+        if (board.status !== "playing") return state;
+        const candidates = hintCandidates(board);
+        if (candidates.length === 0) return state;
+        const ch = candidates[Math.floor(Math.random() * candidates.length)];
+        return withBoard(state, {
+          ...board,
+          hintedChars: [...board.hintedChars, ch],
+        });
+      }
+
+      case "GIVE_UP": {
+        if (board.status !== "playing") return state;
+        return withBoard(state, { ...board, status: "lost" });
       }
 
       default:

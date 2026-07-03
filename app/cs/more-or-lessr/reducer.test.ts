@@ -124,3 +124,42 @@ describe("REPLAY", () => {
     expect(s.anchor).toBe(seq[0]);
   });
 });
+
+describe("GIVE_UP", () => {
+  it("depuis playing → finished, score conservé", () => {
+    const s = started();
+    const next = reducer(s, { type: "GIVE_UP" });
+    expect(next.status).toBe("finished");
+    expect(next.score).toBe(s.score);
+  });
+  it("depuis revealed → finished, score conservé", () => {
+    const s = started();
+    const revealed = reducer(s, {
+      type: "GUESS",
+      direction: correctDir(s.anchor!, s.challenger!),
+    });
+    const next = reducer(revealed, { type: "GIVE_UP" });
+    expect(next.status).toBe("finished");
+    expect(next.score).toBe(revealed.score);
+  });
+  it("ignoré depuis select", () => {
+    const sel = createInitialState();
+    expect(reducer(sel, { type: "GIVE_UP" })).toBe(sel);
+  });
+  it("ignoré depuis finished", () => {
+    const s = started();
+    const finished = reducer(s, { type: "GIVE_UP" });
+    expect(reducer(finished, { type: "GIVE_UP" })).toBe(finished);
+  });
+  it("NEXT après un abandon depuis revealed ne ressuscite pas la partie", () => {
+    const s = started();
+    const revealed = reducer(s, {
+      type: "GUESS",
+      direction: correctDir(s.anchor!, s.challenger!),
+    });
+    const finished = reducer(revealed, { type: "GIVE_UP" });
+    // Le timeout NEXT programmé avant l'abandon peut encore se déclencher :
+    // il doit rester sans effet une fois la partie terminée.
+    expect(reducer(finished, { type: "NEXT" })).toBe(finished);
+  });
+});

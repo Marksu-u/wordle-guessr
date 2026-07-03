@@ -12,7 +12,8 @@ export type MorelessAction =
   | { type: "START"; category: Category }
   | { type: "GUESS"; direction: Direction }
   | { type: "NEXT" }
-  | { type: "REPLAY" };
+  | { type: "REPLAY" }
+  | { type: "GIVE_UP" };
 
 // État de départ : écran de sélection de catégorie (aucune date requise).
 export function createInitialState(): GameState {
@@ -103,6 +104,14 @@ export function createMorelessReducer(
         return state.category
           ? startCategory(data, state.category, today)
           : createInitialState();
+
+      case "GIVE_UP": {
+        // Abandon possible seulement en cours de partie (playing/revealed) : on
+        // termine en conservant le score déjà acquis, la bannière de fin s'affiche.
+        if (state.status !== "playing" && state.status !== "revealed")
+          return state;
+        return { ...state, status: "finished" };
+      }
 
       default:
         return state;

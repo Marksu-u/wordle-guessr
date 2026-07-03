@@ -42,11 +42,26 @@ export type GuessResult = {
   tournaments_won: FieldResult;
 };
 
-// Écran courant : on joue, ou on a gagné. Essais illimités → pas de défaite.
-export type Status = "playing" | "won";
+// Colonnes pouvant faire l'objet d'un indice (toutes sauf le nom).
+export type HintField =
+  | "nationality"
+  | "current_team"
+  | "previous_teams"
+  | "role"
+  | "age"
+  | "majors"
+  | "tournaments_won";
+
+// Ligne de la grille : un guess complet, ou un indice (une seule colonne révélée).
+export type GridRow =
+  | { kind: "guess"; result: GuessResult }
+  | { kind: "hint"; field: HintField; result: FieldResult };
+
+// Écran courant : on joue, on a gagné, ou on a abandonné. Essais illimités → pas de défaite « naturelle ».
+export type Status = "playing" | "won" | "gaveup";
 
 export type GameState = {
   target: Player; // joueur du jour (caché)
-  guesses: GuessResult[]; // plus récent en tête
+  rows: GridRow[]; // plus récent en tête (guesses ET indices)
   status: Status;
 };

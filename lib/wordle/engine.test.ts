@@ -65,6 +65,18 @@ describe("deriveKeyStates", () => {
     expect(m.get("O")).toBe("correct");
     expect(m.get("A")).toBe("absent");
   });
+
+  it("un caractère indicé apparaît present au clavier", () => {
+    const m = deriveKeyStates([], [], ["z"]);
+    expect(m.get("Z")).toBe("present");
+  });
+
+  it("un indice ne rétrograde pas un correct déjà obtenu par un essai", () => {
+    const guesses = ["O"];
+    const evals: TileState[][] = [["correct"]];
+    const m = deriveKeyStates(guesses, evals, ["O"]);
+    expect(m.get("O")).toBe("correct");
+  });
 });
 
 describe("isWin", () => {

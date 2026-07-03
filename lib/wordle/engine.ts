@@ -45,6 +45,7 @@ const RANK: Record<KeyState, number> = {
 export function deriveKeyStates(
   guesses: string[],
   evaluations: TileState[][],
+  hintedChars: string[] = [],
 ): Map<string, KeyState> {
   const map = new Map<string, KeyState>();
   for (let r = 0; r < guesses.length; r++) {
@@ -56,6 +57,13 @@ export function deriveKeyStates(
       const cur = map.get(g[i]) ?? "unused";
       if (RANK[s] > RANK[cur]) map.set(g[i], s);
     }
+  }
+  // Indices : un caractère indicé apparaît "present" au clavier, sans jamais
+  // rétrograder un "correct" déjà obtenu par le jeu.
+  for (const ch of hintedChars) {
+    const key = ch.toUpperCase();
+    const cur = map.get(key) ?? "unused";
+    if (RANK["present"] > RANK[cur]) map.set(key, "present");
   }
   return map;
 }
