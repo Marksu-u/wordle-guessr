@@ -5,10 +5,16 @@ import Board from "@/components/cs/wordle/Board";
 import Keyboard from "@/components/cs/wordle/Keyboard";
 import LengthTabs from "@/components/cs/wordle/LengthTabs";
 import ResultBanner from "@/components/cs/wordle/ResultBanner";
+import GameMenu, { type GameMenuItem } from "@/components/cs/GameMenu";
+import HelpModal from "@/components/cs/HelpModal";
 import { deriveKeyStates } from "@/lib/wordle/engine";
 import { availableLengths } from "@/lib/wordle/selection";
 import type { WordleData } from "@/lib/wordle/types";
-import { createInitialState, createWordleReducer } from "./reducer";
+import {
+  createInitialState,
+  createWordleReducer,
+  hintCandidates,
+} from "./reducer";
 
 export default function WordleGame({ data }: { data: WordleData }) {
   const lengths = availableLengths(data);
@@ -71,7 +77,58 @@ export default function WordleGame({ data }: { data: WordleData }) {
     return () => clearTimeout(id);
   }, [board.invalid]);
 
-  const keyStates = deriveKeyStates(board.guesses, board.evaluations);
+  // Modale d'aide (règles du jeu).
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  // Pop-up d'indice : on affiche brièvement la DERNIÈRE lettre indicée en overlay.
+  // On mémorise la longueur précédente de hintedChars pour ne déclencher que sur
+  // un vrai AJOUT — pas au premier rendu ni lors d'un changement d'onglet (où le
+  // board actif peut déjà avoir des indices).
+  const [hintPop, setHintPop] = useState<string | null>(null);
+  const prevHintCount = useRef(board.hintedChars.length);
+  useEffect(() => {
+    const count = board.hintedChars.length;
+    if (count > prevHintCount.current) {
+      setHintPop(board.hintedChars[count - 1]);
+      const id = setTimeout(() => setHintPop(null), 1100);
+      prevHintCount.current = count;
+      return () => clearTimeout(id);
+    }
+    // Resynchronise sans pop-up (ex. changement d'onglet, REPLAY qui remet à zéro).
+    prevHintCount.current = count;
+  }, [board.hintedChars]);
+
+  // Le clavier reflète aussi les caractères indicés (marqués "present").
+  const keyStates = deriveKeyStates(
+    board.guesses,
+    board.evaluations,
+    board.hintedChars,
+  );
+
+  // Actions annexes regroupées dans le menu « Options ».
+  const menuItems: GameMenuItem[] = [
+    {
+      id: "hint",
+      label: "Indice",
+      icon: "hint",
+      disabled:
+        board.status !== "playing" || hintCandidates(board).length === 0,
+      onSelect: () => dispatch({ type: "HINT" }),
+    },
+    {
+      id: "help",
+      label: "Aide",
+      icon: "help",
+      onSelect: () => setHelpOpen(true),
+    },
+    {
+      id: "giveup",
+      label: "Abandonner",
+      icon: "giveup",
+      disabled: board.status !== "playing",
+      onSelect: () => dispatch({ type: "GIVE_UP" }),
+    },
+  ];
 
   return (
     <div className="flex w-full max-w-lg flex-col items-center gap-5">
@@ -84,12 +141,60 @@ export default function WordleGame({ data }: { data: WordleData }) {
           rejoue l'animation d'entrée (transition de tab). */}
       <div
         key={state.activeLength}
-        className="flex w-full flex-col items-center gap-5 animate-[wordle-tab_0.25s_ease]"
+        className="flex w-full animate-[wordle-tab_0.25s_ease] flex-col items-center gap-5"
       >
+        {/* Menu d'actions annexes, aligné à droite juste au-dessus du board. */}
+        <div className="flex w-full justify-end">
+          <GameMenu items={menuItems} />
+        </div>
         <Board board={board} maxLength={maxLength} />
-        <ResultBanner board={board} onReplay={() => dispatch({ type: "REPLAY" })} />
+        <ResultBanner
+          board={board}
+          onReplay={() => dispatch({ type: "REPLAY" })}
+        />
       </div>
-      <Keyboard keyStates={keyStates} flashKey={flashKey} onKey={input} onEnter={submit} onDelete={del} />
+      <Keyboard
+        keyStates={keyStates}
+        flashKey={flashKey}
+        onKey={input}
+        onEnter={submit}
+        onDelete={del}
+      />
+
+      {/* Pop-up d'indice : grosse tuile dorée centrée, disparaît après ~1,1 s. */}
+      {hintPop && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center">
+          <div className="cs2-display animate-[hint-pop_1.1s_ease_forwards] rounded-xl bg-[var(--wordle-present)] px-8 py-6 text-6xl font-extrabold text-black">
+            {hintPop}
+          </div>
+        </div>
+      )}
+
+      <HelpModal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title="Comment jouer"
+      >
+        <ul className="space-y-2">
+          <li>
+            Devine le pseudo d’un joueur pro CS en 6 essais. Chaque essai doit
+            être un pseudo du pool.
+          </li>
+          <li>
+            🟩 vert = bon caractère bien placé, 🟨 jaune = présent mais mal
+            placé, ⬛ gris = absent.
+          </li>
+          <li>
+            Les onglets changent la longueur du pseudo : un board indépendant
+            par longueur.
+          </li>
+          <li>
+            💡 L’indice révèle un caractère de la réponse (marqué en jaune sur
+            le clavier) et ne consomme pas d’essai.
+          </li>
+          <li>Certains pseudos contiennent des chiffres.</li>
+        </ul>
+      </HelpModal>
     </div>
   );
 }

@@ -5,13 +5,31 @@ type Props = {
   target: Player;
   attempts: number;
   onReplay: () => void;
+  gaveUp?: boolean; // variante abandon : révèle la réponse en rouge
 };
 
-export default function ResultBanner({ target, attempts, onReplay }: Props) {
+export default function ResultBanner({
+  target,
+  attempts,
+  onReplay,
+  gaveUp,
+}: Props) {
   return (
-    <div className="mt-6 w-full max-w-md rounded-xl border border-emerald-500/40 bg-emerald-600/10 p-5 text-center">
-      <p className="text-xs tracking-[0.2em] text-emerald-400 uppercase">
-        Trouvé en {attempts} essai{attempts > 1 ? "s" : ""}
+    <div
+      className={`mt-6 w-full max-w-md rounded-xl border p-5 text-center ${
+        gaveUp
+          ? "border-red-500/40 bg-red-600/10"
+          : "border-emerald-500/40 bg-emerald-600/10"
+      }`}
+    >
+      <p
+        className={`text-xs tracking-[0.2em] uppercase ${
+          gaveUp ? "text-red-400" : "text-emerald-400"
+        }`}
+      >
+        {gaveUp
+          ? "Abandonné — la réponse était"
+          : `Trouvé en ${attempts} essai${attempts > 1 ? "s" : ""}`}
       </p>
       <h2 className="cs2-display mt-1 text-3xl font-extrabold uppercase italic">
         {nationToFlag(target.nationality)} {target.name}

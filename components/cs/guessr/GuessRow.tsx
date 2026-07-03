@@ -1,5 +1,15 @@
 import { nationToFlag } from "@/lib/more-or-lessr/flags";
-import type { FieldResult, GuessResult, Match } from "@/lib/guessr/types";
+import { HINT_FIELDS } from "@/lib/guessr/hints";
+import type {
+  FieldResult,
+  GuessResult,
+  HintField,
+  Match,
+} from "@/lib/guessr/types";
+
+// Template de colonnes partagé par les lignes guess et indice (aligné aux headers).
+const GRID_COLS =
+  "grid grid-cols-[0.85fr_0.95fr_1fr_1.3fr_0.9fr_0.7fr_0.75fr_0.8fr] gap-1.5";
 
 // Couleurs par état, alignées sur le thème CS2 (cs2-theme.css).
 const MATCH_BG: Record<Match, string> = {
@@ -29,25 +39,66 @@ function Cell({ field }: { field: FieldResult }) {
   );
 }
 
+// Cellule nationalité (drapeau + nom du pays), réutilisée par guess et indice.
+function FlagCell({ field }: { field: FieldResult }) {
+  const nation = field.kind === "text" ? field.value : "";
+  return (
+    <div
+      className={`flex min-h-[58px] flex-col items-center justify-center rounded-lg border px-2 text-center text-[13px] font-semibold ${MATCH_BG[field.match]}`}
+    >
+      <span className="text-base">{nationToFlag(nation)}</span>
+      <span className="text-[11px] opacity-80">{nation}</span>
+    </div>
+  );
+}
+
+// Cellule vide : colonne non révélée d'un indice.
+function EmptyCell() {
+  return (
+    <div className="min-h-[58px] rounded-lg border border-white/10 bg-white/5" />
+  );
+}
+
 export default function GuessRow({ result }: { result: GuessResult }) {
   const p = result.player;
   return (
-    <div className="grid grid-cols-[0.85fr_0.95fr_1fr_1.3fr_0.9fr_0.7fr_0.75fr_0.8fr] gap-1.5">
+    <div className={GRID_COLS}>
       <div className="flex min-h-[58px] items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-center text-[13px] font-bold">
         {p.name}
       </div>
-      <div
-        className={`flex min-h-[58px] flex-col items-center justify-center rounded-lg border px-2 text-center text-[13px] font-semibold ${MATCH_BG[result.nationality.match]}`}
-      >
-        <span className="text-base">{nationToFlag(p.nationality)}</span>
-        <span className="text-[11px] opacity-80">{p.nationality}</span>
-      </div>
+      <FlagCell field={result.nationality} />
       <Cell field={result.current_team} />
       <Cell field={result.previous_teams} />
       <Cell field={result.role} />
       <Cell field={result.age} />
       <Cell field={result.majors} />
       <Cell field={result.tournaments_won} />
+    </div>
+  );
+}
+
+// Ligne « indice » : seule la colonne révélée (verte) est visible, le reste vide.
+export function HintRow({
+  field,
+  result,
+}: {
+  field: HintField;
+  result: FieldResult;
+}) {
+  return (
+    <div className={GRID_COLS}>
+      <div className="flex min-h-[58px] items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 text-center text-[12px] font-semibold">
+        💡 Indice
+      </div>
+      {HINT_FIELDS.map((f) =>
+        f !== field ? (
+          <EmptyCell key={f} />
+        ) : f === "nationality" ? (
+          <FlagCell key={f} field={result} />
+        ) : (
+          <Cell key={f} field={result} />
+        ),
+      )}
     </div>
   );
 }

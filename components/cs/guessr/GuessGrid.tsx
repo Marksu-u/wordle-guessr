@@ -1,5 +1,5 @@
-import GuessRow from "./GuessRow";
-import type { GuessResult } from "@/lib/guessr/types";
+import GuessRow, { HintRow } from "./GuessRow";
+import type { GridRow } from "@/lib/guessr/types";
 
 const HEADERS = [
   "Joueur",
@@ -12,8 +12,8 @@ const HEADERS = [
   "Tournois",
 ];
 
-export default function GuessGrid({ guesses }: { guesses: GuessResult[] }) {
-  if (guesses.length === 0) return null;
+export default function GuessGrid({ rows }: { rows: GridRow[] }) {
+  if (rows.length === 0) return null;
   return (
     <div className="w-full overflow-x-auto">
       <div className="min-w-[680px] space-y-1.5">
@@ -27,9 +27,17 @@ export default function GuessGrid({ guesses }: { guesses: GuessResult[] }) {
             </div>
           ))}
         </div>
-        {guesses.map((g) => (
-          <GuessRow key={g.player.name} result={g} />
-        ))}
+        {rows.map((row) =>
+          row.kind === "guess" ? (
+            <GuessRow key={row.result.player.name} result={row.result} />
+          ) : (
+            <HintRow
+              key={`hint-${row.field}`}
+              field={row.field}
+              result={row.result}
+            />
+          ),
+        )}
       </div>
     </div>
   );
