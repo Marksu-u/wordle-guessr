@@ -1,8 +1,10 @@
 export default function ValoPage() {
   return (
-    <body>
+    <div
+      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/backgrounds/valorant-bg.jpg')" }}
+    >
       <h1>Valorant</h1>
-      <h1>Git GIT</h1>
-    </body>
+    </div>
   );
 }
