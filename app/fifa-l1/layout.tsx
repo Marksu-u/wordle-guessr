@@ -19,11 +19,11 @@ export default function FifaPage({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${sairaCondensed.variable} h-full antialiased`}
+    <div
+      className={`${sairaCondensed.variable} theme-cs2 bg-background text-foreground min-h-full font-sans`}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
-    </html>
+      {children}
+    </div>
   );
 }
+
