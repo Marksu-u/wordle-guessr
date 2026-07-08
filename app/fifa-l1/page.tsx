@@ -1,10 +1,14 @@
 import Image from 'next/image'
+import WordleGame from '@/components/WordleGame';
 
 export default function FifaPage() {
     return (
 
-       <div><h1 className="text-3xl font-bold mb-6 text-center font-mono tracking-wide uppercase">Ligue 1</h1>
-        <FifaImage/></div>
+       <div>
+            <h1 className="text-3xl font-bold mb-6 text-center font-mono tracking-wide uppercase">Ligue 1 - Wordle Game</h1>
+            <FifaImage/>
+            <WordleGame/>
+        </div>
     )
 }
 
@@ -18,7 +22,7 @@ export function FifaImage(){
             alt="Pochette de FIFA 14"
             className="rounded-xl shadow-lg"
         /></div>
-    )
+    );
 }
 
 
