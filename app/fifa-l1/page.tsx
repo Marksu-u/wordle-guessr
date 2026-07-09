@@ -5,7 +5,8 @@ export default function FifaPage() {
     return (
 
        <div>
-            <h1 className="text-3xl font-bold mb-6 text-center font-mono tracking-wide uppercase">Ligue 1 - Wordle Game</h1>
+            <h1 className="text-3xl font-bold mb-4 text-center font-mono tracking-wide uppercase"> Wordle Game - Ligue 1</h1>
+            <p className='mb-6 text-center font-mono'>Retrouvez le nom d'un joueur du championnat français</p>
             <FifaImage/>
             <WordleGame/>
         </div>

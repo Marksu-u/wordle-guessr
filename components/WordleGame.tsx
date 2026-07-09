@@ -30,7 +30,7 @@ export default function WordleGame({ solution = 'PARIS' }: WordleGameProps) {
             }
         }
     };
-    //Affichage
+    //Affichage des essais 
     return (
         <div className='flex flex-col items-center w-full'>
             <div className="my-8 p-4 bg-zinc-900 rounded-xl border border-zinc-700 w-full max-w-sm text-center">
