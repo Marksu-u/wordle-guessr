@@ -3,6 +3,7 @@
 // import de tous les components
 import { useState } from 'react';
 import Keyboard from './Keyboard';
+import { compareWords } from '../lib/compare';
 
 interface WordleGameProps {
   solution?: string;

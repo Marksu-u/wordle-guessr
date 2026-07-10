@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import WordleGame from '@/components/WordleGame';
-import wordsData from './data/ligue1/wordle.json';
+//import wordsData from './data/ligue1/wordle.json';
 
 export default function FifaPage() {
     return (
