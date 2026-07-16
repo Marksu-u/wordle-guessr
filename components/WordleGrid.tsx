@@ -44,8 +44,8 @@ export default function WordleGrid({ guesses, currentGuess, wordLength, evaluati
               return (
                 <div
                   key={letterIndex}
-                  className={`w-12 h-12 border-2 flex items-center justify-center font-bold text-xl rounded uppercase transition-all duration-300 ${bgColor} ${textColor}`}
-                >
+                  className={`w-12 h-12 border-2 flex items-center justify-center font-bold text-xl 
+                    rounded uppercase transition-all duration-300 ${bgColor} ${textColor}`}>
                   {letter}
                 </div>
               );

@@ -22,8 +22,8 @@ return (
           {row.map((key) => {
             const status = letterStatuses[key];
             
-            // Style de base (touches grises foncées)
-            let bgClass = 'bg-zinc-700 hover:bg-zinc-600 text-white'; 
+            // couleur de base des touches
+            let bgClass = 'bg-zinc-700 hover:bg-zinc-600 cursor-pointer hover:scale-105 active:scale-95 transition-all text-white'; 
             
             // Changement de style dynamique selon le résultat du mot
             if (status === 'correct') {
@@ -32,14 +32,14 @@ return (
               bgClass = 'bg-yellow-500 text-white font-bold'; // Jaune
             } else if (status === 'absent') {
               // Gris foncé, lettres grisées et bouton cliquable désactivé (pointer-events-none)
-              bgClass = 'bg-zinc-800 text-zinc-500 opacity-40 pointer-events-none'; 
+              bgClass = 'bg-zinc-800 text-zinc-500 opacity-40 pointer-events-none cursor-not-allowed'; 
             }
             return (
               <button
                 key={key}
                 onClick={() => onKeyPress(key)}
-                className={`px-2 py-4 rounded font-bold text-sm min-w-[35px] transition-all uppercase ${bgClass}`}
-              >
+                className={`px-2 py-4 rounded font-bold text-sm min-w-[35px] 
+                  transition-all uppercase ${bgClass}`}>
                 {key}
               </button>
             );

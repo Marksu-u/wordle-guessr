@@ -2,20 +2,26 @@ import { NextResponse } from 'next/server';
 import wordsData from '../../data/ligue1/wordle.json';
 import { compareWords } from '../../../lib/compare';
 
+//Variable qui change à chaque fois
+let MotServeur = "";
 
-const Longueur_imposée = 5;
+//Fonction
+function selectionNouveauMot(){
+  const listeMots5Lettres = wordsData.words["5"];
+  const randomIndex = Math.floor(Math.random()*listeMots5Lettres.length);
+  MotServeur = listeMots5Lettres[randomIndex].toUpperCase();
+  console.log("[BACKEND] Nouveau mot secret généré :", MotServeur);
+}
 
-//Choix aleatoire du mot de 5 lettres
-const motsde5Lettres = wordsData.words["5"];
+selectionNouveauMot();
 
-//Pioche d'un mot au hasard
-const MotServeur = motsde5Lettres[Math.floor(Math.random()*motsde5Lettres.length)];
+//Démarrage ou reinitialisation du jeu
+export async function GET(){
+  selectionNouveauMot();
+  return NextResponse.json({ success: true, message: "Nouvelle partie lancée"});
+}
 
-
-console.log("[BACKEND] Le mot est : ", MotServeur);
-
-//Route API
-//Fonction appelée par le front
+//Fonction pour valider le mot
 export async function POST(request: Request) {
   try {
     // Le Front (ton composant) envoie un mot au serveur, ex: { guess: "LYONS" }
