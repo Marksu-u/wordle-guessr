@@ -5,10 +5,11 @@ interface WordleGridProps {
   currentGuess: string;
   wordLength: number;
   evaluations: ('correct' | 'present' | 'absent')[][]; // Reçoit l'historique des couleurs du serveur
+  maxAttempts?: number;
 }
 
-export default function WordleGrid({ guesses, currentGuess, wordLength, evaluations }: WordleGridProps) {
-  const totalRows = 5;
+export default function WordleGrid({ guesses, currentGuess, wordLength, evaluations, maxAttempts = 6 }: WordleGridProps) {
+  const totalRows = maxAttempts;
 
   return (
     <div className="flex flex-col gap-2 my-6">
