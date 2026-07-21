@@ -6,7 +6,7 @@ import { compareWords } from '../../../lib/compare';
 let MotServeur = "";
 
 //Fonction
-function selectionNouveauMot(length: string = "5"){
+function selectionNouveauMot(length: string){
   const wordsByLength = wordsData.words as Record<string, string[]>;
   const listeMots = wordsByLength[length] || wordsData.words["5"];
 
@@ -15,21 +15,22 @@ function selectionNouveauMot(length: string = "5"){
   console.log("[BACKEND] Nouveau mot secret généré :", MotServeur);
 }
 
-selectionNouveauMot("5");
-
 //Démarrage ou reinitialisation du jeu
 export async function GET(request: Request){
 const { searchParams } = new URL(request.url);
 const length = searchParams.get('length') || "5";
 
-  selectionNouveauMot();
-  return NextResponse.json({ success: true, message: "Nouvelle partie lancée en ${length} lettres."});
+  selectionNouveauMot(length);
+  return NextResponse.json({ success: true, message: `Nouvelle partie lancée en ${length} lettres.`});
 }
 
 //Fonction pour valider le mot
 export async function POST(request: Request) {
   try {
-    // Le Front (ton composant) envoie un mot au serveur, ex: { guess: "LYONS" }
+    if (!MotServeur) {
+      selectionNouveauMot("5");
+    }
+    // Le Front (ton composant) envoie un mot au serveur
     const body = await request.json();
     const { guess, isLastAttempt } = body; 
 
