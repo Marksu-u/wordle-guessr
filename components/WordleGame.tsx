@@ -31,7 +31,7 @@ export default function WordleGame() {
     const startNewGame = async (lengthToSet = wordLength) => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/game?length=${lengthToSet}', { method: 'GET' });
+            const response = await fetch(`/api/game?length=${lengthToSet}`, { method: 'GET' });
 
             if (response.ok){
                 setWordLength(lengthToSet);
@@ -65,16 +65,16 @@ export default function WordleGame() {
 
         else if (key === 'ENTRER') {
             if (currentGuess.length !== wordLength) {
-                alert('Le mot doit faire exactement ${wordleLength} lettres.');
+                alert(`Le mot doit faire exactement ${wordLength} lettres.`);
                 return;
             }
 
             try {
                 //Envoi de la proposition de mot au serveur
-                const response = await fetch('api/game', {
+                const response = await fetch('/api/game', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ guess: currentGuess.toLocaleUpperCase(),
+                    body: JSON.stringify({ guess: currentGuess.toUpperCase(),
                         isLastAttempt: guesses.length >= (maxAttempts - 1)
                      }),
                 });
@@ -118,7 +118,7 @@ export default function WordleGame() {
                 //Fin de partie 
                 if (data.isWon) {
                     setGameStatus('won');
-                }   else if (newGuesses.length >= 5) {
+                }   else if (newGuesses.length >= maxAttempts) {
                     setGameStatus('lost');
                     if (data.solution) {
                         setSolution(data.solution);
@@ -143,8 +143,6 @@ export default function WordleGame() {
     //Gerer le clavier physique
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (gameStatus !== 'playing') return;
-
             const key = event.key.toUpperCase();
 
             //Cas 1 : Touche entrer
@@ -162,12 +160,11 @@ export default function WordleGame() {
         };
         //Attache event à la fenetre dès ouverture du jeu
         window.addEventListener('keydown', handleKeyDown);
-
         //Nettoyage de l'event
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [gameStatus, currentGuess, guesses]);
+    }, [wordLength, currentGuess, guesses, gameStatus ]);
   
     //Affichage grille et selecteur taille
     return (
@@ -187,7 +184,9 @@ export default function WordleGame() {
                                 'bg-blue-600 text-white ring-2 ring-blue-400 scale-105'
                                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
                             }`}
-                        ></button>
+                        >
+                            {length}
+                        </button>
                     ))}
                 </div>
             </div>
