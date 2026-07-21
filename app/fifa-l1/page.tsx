@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import WordleGame from '@/components/WordleGame';
+import Link from 'next/link';
 
 export default function FifaPage() {
     return (
@@ -24,13 +25,20 @@ export default function FifaPage() {
 export function FifaImage(){
     return (
         <div className="flex justify-center w-full md:w-auto shrink-0 mt-30">
-        <Image
-            src="/ligue1.webp"
-            width={300}
-            height={300}
-            alt="Logo de Ligue 1"
-            className="rounded-xl shadow-lg"
-        /></div>
+            <Link
+                href="https://www.ligue1.com"
+                target="_blank"
+                rel="noopener noreferrer">
+                <Image
+                    src="/ligue1.webp"
+                    width={300}
+                    height={300}
+                    alt="Logo de Ligue 1"
+                    title="Visiter le site officiel de la Ligue 1"
+                    className="rounded-xl shadow-lg"
+                />
+            </Link>
+        </div>
     );
 }
 
