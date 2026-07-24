@@ -27,6 +27,41 @@ export default function WordleGame() {
     //Blocage double-clic
     const [isLoading, setIsLoading] = useState(false);
 
+    //Etat pour animation du clavier physique
+    const [activeKey, setActiveKey] = useState<string | null>(null);
+
+    // GESTION DU SCORE ET LOCALSTORAGE
+    const [historiqueScores, setHistoriqueScores] = useState<Record<string, number>>({});
+
+    //Chargement historique
+    useEffect(() => {
+        const donneesSave = localStorage.getItem('ligue1-historique');
+        if (donneesSave) {
+            setHistoriqueScores(JSON.parse(donneesSave));
+        } else {
+            setHistoriqueScores({});
+        }
+    }, []);
+
+    //Sauvegarde du score
+    const enregistrerScoreDuJour = (scoreObtenu: number) => {
+        const dateDuJour = new Date().toISOString().split('T')[0];
+
+        setHistoriqueScores((ancienHistorique) => {
+            //Verification si score existant aujourd'hui
+            const scoresDuJour = ancienHistorique[dateDuJour] || [];
+
+            //Ajout du nouveau score à la fin de la liste
+            const nouvelHistorique = {
+                ...ancienHistorique,
+                [dateDuJour]: bestScore
+            };
+            localStorage.setItem('ligue1-historique', JSON.stringify(nouvelHistorique));
+            return nouvelHistorique;
+        });
+        window.dispatchEvent(new Event('maj-score'));
+    };
+
     //Fonction Rejouer / Changement de taille
     const startNewGame = async (lengthToSet = wordLength) => {
         setIsLoading(true);
@@ -115,13 +150,23 @@ export default function WordleGame() {
                 }
                 setLetterStatuses(updatedStatuses);
 
-                //Fin de partie 
+                //Fin de partie
+                //si le joueur gagne
                 if (data.isWon) {
                     setGameStatus('won');
+                    //Calcul du score selon le nombre d'essais
+                    const pointsGagnes = maxAttempts - newGuesses.length + 1;
+                    // Sauvegarde dans le dico avec la date
+                    enregistrerScoreDuJour(pointsGagnes);
+
                 }   else if (newGuesses.length >= maxAttempts) {
+                    //si le joueur perd 
                     setGameStatus('lost');
                     if (data.solution) {
                         setSolution(data.solution);
+                        //Sauvegarde de la défaite (0 points)
+                        enregistrerScoreDuJour(0);
+                        
                     } else {
                         setSolution("INTROUVABLE");
                     }
@@ -145,6 +190,18 @@ export default function WordleGame() {
         const handleKeyDown = (event: KeyboardEvent) => {
             const key = event.key.toUpperCase();
 
+            // DECLENCHEMENT DE L'ANIMATION 
+            let keyToAnimate = key;
+            if (event.key === 'Enter') keyToAnimate = 'ENTRER';
+            if (event.key === 'Backspace') keyToAnimate = 'SUPPRIMER';
+
+            if (/^[A-Z]$/.test(key) || event.key === 'Enter' || event.key === 'Backspace') {
+                setActiveKey(keyToAnimate);
+                setTimeout(() => {
+                    setActiveKey(null);
+                }, 150);
+            }
+
             //Cas 1 : Touche entrer
             if (event.key === 'Enter') {
                 handleKeyPress('ENTRER');
@@ -165,14 +222,22 @@ export default function WordleGame() {
             window.removeEventListener('keydown', handleKeyDown);
         };
     }, [wordLength, currentGuess, guesses, gameStatus ]);
-  
-    //Affichage grille et selecteur taille
+    
+    //Récupération des scores 
+    const allScores = Object.values(historiqueScores);
+
+    //Recherche du meilleur score
+    const bestScore = allScores.length > 0 ? Math.max(...allScores) : 0;
+
+
+    // AFFICHAGE
     return (
         <div className='flex flex-col items-center w-full p-4'>
+
             {/* SELECTEUR TAILLE MOT */}
             <div className='flex flex-col items-center mb-6 w-full'>
                 <span className='text-xs font-mono uppercase tracking-wider text-zinc-400 mb-2'>
-                    Longueur du mot :
+                    Longueur du mot
                 </span>
                 <div className='flex gap-2'>
                     {[4, 5, 6, 7, 8].map((length) => (
@@ -234,6 +299,7 @@ export default function WordleGame() {
             <Keyboard 
                 onKeyPress={handleKeyPress} 
                 letterStatuses={letterStatuses} 
+                activeKey={activeKey}
             />
             
         </div>
