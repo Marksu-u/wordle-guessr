@@ -233,7 +233,7 @@ export default function WordleGame() {
     // AFFICHAGE
     return (
         <div className='flex flex-col items-center w-full p-4'>
-
+            Coucou
             {/* SELECTEUR TAILLE MOT */}
             <div className='flex flex-col items-center mb-6 w-full'>
                 <span className='text-xs font-mono uppercase tracking-wider text-zinc-400 mb-2'>
