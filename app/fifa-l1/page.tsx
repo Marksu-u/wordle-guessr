@@ -15,7 +15,7 @@ export default function FifaPage() {
 
                 <div className='flex flex-col md:flex-row gap-8 md:gap-16 justify-center items-center 
                 md:items-start w-full flex-grow'>
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col mt-6 items-center">
                         <Score/>
                         <FifaImage/>
                     </div>
@@ -30,7 +30,7 @@ export default function FifaPage() {
 
 export function FifaImage(){
     return (
-        <div className="flex justify-center w-full md:w-auto shrink-0 mt-10 ">
+        <div className="flex justify-center w-full md:w-auto shrink-0 mt-13 ">
             <Link
                 href="https://www.ligue1.com"
                 target="_blank"
