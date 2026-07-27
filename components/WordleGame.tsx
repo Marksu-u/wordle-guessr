@@ -30,6 +30,8 @@ export default function WordleGame() {
     //Etat pour animation du clavier physique
     const [activeKey, setActiveKey] = useState<string | null>(null);
 
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
     // GESTION DU SCORE ET LOCALSTORAGE
     const [historiqueScores, setHistoriqueScores] = useState<Record<string, number>>({});
 
@@ -117,8 +119,11 @@ export default function WordleGame() {
                 const data = await response.json();
 
                 if (!response.ok) {
-                    alert(data.error || "Une erreur est survenue.");
-                    return;
+                    //Affichage du message d'erreur
+                    setToastMessage("Mot introuvable dans la base de données");
+                    // On le fait disparaître après 2 secondes
+                    setTimeout(() => setToastMessage(null), 2000);
+                    return;//le mot est bloqué
                 }
 
                 //Recuperarion des couleurs
@@ -233,7 +238,6 @@ export default function WordleGame() {
     // AFFICHAGE
     return (
         <div className='flex flex-col items-center w-full p-4'>
-            Coucou
             {/* SELECTEUR TAILLE MOT */}
             <div className='flex flex-col items-center mb-6 w-full'>
                 <span className='text-xs font-mono uppercase tracking-wider text-zinc-400 mb-2'>
