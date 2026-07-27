@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import wordsData from '../../data/ligue1/wordle.json';
 import { compareWords } from '../../../lib/compare';
 
-//Variable qui change à chaque fois
-let MotServeur = "";
+//Dico qui retient un mot par taille 
+let MotServeur: Record<string, string> = {};
 
 //Fonction
 function selectionNouveauMot(length: string){
@@ -11,8 +11,8 @@ function selectionNouveauMot(length: string){
   const listeMots = wordsByLength[length] || wordsData.words["5"];
 
   const randomIndex = Math.floor(Math.random()*listeMots.length);
-  MotServeur = listeMots[randomIndex].toUpperCase();
-  console.log("[BACKEND] Nouveau mot secret généré :", MotServeur);
+  MotServeur[length] = listeMots[randomIndex].toUpperCase();
+  console.log("[BACKEND] Nouveau mot secret généré :", MotServeur[length]);
 }
 
 //Démarrage ou reinitialisation du jeu
@@ -27,28 +27,54 @@ const length = searchParams.get('length') || "5";
 //Fonction pour valider le mot
 export async function POST(request: Request) {
   try {
-    if (!MotServeur) {
-      selectionNouveauMot("5");
-    }
     // Le Front (ton composant) envoie un mot au serveur
     const body = await request.json();
-    const { guess, isLastAttempt } = body; 
+    const { guess, isLastAttempt } = body;
 
-    // Sécurité : Si le mot reçu n'a pas la bonne taille
-    if (!guess || guess.length !== MotServeur.length) {
+    //Devine la taille de la grille en fonction du mot de la grille
+    const currentLength = guess ? guess.length.toString() : "5";
+
+    //Recup du mot secret à la taille specifique
+    let motSecretActuel = MotServeur[currentLength];
+
+    //Sécurité : si le serveur n'a plus le mot en mémoire, on le recrée
+    if (!motSecretActuel){
+      selectionNouveauMot(currentLength);
+      motSecretActuel = MotServeur[currentLength];
+    }
+
+    // Sécurité 1 : Si le mot reçu n'a pas la bonne taille
+    if (!guess || guess.length !== motSecretActuel.length) {
       return NextResponse.json(
-        { error: `Le mot doit faire exactement ${MotServeur.length} lettres.` }, 
+        { error: `Le mot doit faire exactement ${motSecretActuel.length} lettres.` }, 
+        { status: 400 }
+      );
+    }
+
+    //Sécurité 2 : Si le mot n'existe pas dans la bdd
+    const wordLengthStr = motSecretActuel.length.toString();
+    const wordsByLength = wordsData.words as Record<string, string[]>;
+    const listeMotsValides = wordsByLength[wordLengthStr] || [];
+
+    //Recherche du mot dans la liste
+    const isValidWord = listeMotsValides.some(
+      (mot) => mot.toUpperCase() === guess.toUpperCase()
+    );
+
+    if (!isValidWord){
+      return NextResponse.json(
+        { error: "Mot introuvable dans la base de données"},
         { status: 400 }
       );
     }
 
     // On utilise ta fonction pure de lib/compare.ts pour analyser les lettres
-    const evaluation = compareWords(guess, MotServeur);
+    const evaluation = compareWords(guess, motSecretActuel);
     
     // On vérifie si le joueur a trouvé le mot exact
-    const isWon = guess.toUpperCase() === MotServeur;
+    const isWon = guess.toUpperCase() === motSecretActuel;
 
-    const solutionWord = (isWon || isLastAttempt) ? MotServeur : "";
+    const solutionWord = (isWon || isLastAttempt) ? motSecretActuel : "";
 
     // On renvoie la réponse au format JSON au navigateur
     return NextResponse.json({
