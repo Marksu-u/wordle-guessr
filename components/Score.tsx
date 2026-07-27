@@ -27,7 +27,7 @@ export default function Score() {
         };
     }, []);
 
-    if (meilleurScore === 0) return null;
+    //if (meilleurScore === 0) return null;
 
     return (
         <div className="flex flex-col items-start mb-4 mt-5">
