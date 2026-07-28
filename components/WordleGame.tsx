@@ -53,6 +53,21 @@ export default function WordleGame() {
     useEffect(() => {
         const donneesSave = localStorage.getItem('ligue1-historique');
         if (donneesSave) setHistoriqueScores(JSON.parse(donneesSave));
+
+        //Vérification de date pour supprimer les essais
+        const dateDuJour = new Date().toISOString().split('T')[0];
+        const dateDernierePartie = localStorage.getItem('ligue1-date-derniere-partie');
+
+        if (dateDernierePartie !== dateDuJour) {
+            localStorage.removeItem('ligue1-parties-en-cours');
+            localStorage.setItem('ligeue1-date-derniere-partie', dateDuJour);
+        }
+
+        //Recuperation de la derniere taille 
+        const lastSizeSaved = localStorage.getItem('ligue1-derniere-taille');
+        const initialSize = lastSizeSaved ? parseInt(lastSizeSaved) : 5;
+
+        setWordLength(initialSize);
         
         const partiesSave = localStorage.getItem('ligue1-parties-en-cours');
         if (partiesSave) {
@@ -71,7 +86,7 @@ export default function WordleGame() {
         setIsInitialized(true);
     }, []);
 
-    //Sauvegarde automztique
+    //Sauvegarde automatique
     useEffect(() => {
         if (!isInitialized) return;
         //Pas de sauvegarde de grille totalement vide
@@ -166,8 +181,12 @@ export default function WordleGame() {
 
         else if (key === 'ENTRER') {
             if (currentGuess.length !== wordLength) {
-                alert(`Le mot doit faire exactement ${wordLength} lettres.`);
-                return;
+                //Affichage du message d'erreur
+                    setToastMessage(`Le mot doit faire ${wordLength} lettres`);
+                    setTimeout(() => setToastMessage(null), 2000);//Temps d'affichage du message
+                    setIsShaking(true); //Mouvement des cases
+                    setTimeout(() => setIsShaking(false), 400);                
+                    return;
             }
 
             try {
@@ -221,7 +240,7 @@ export default function WordleGame() {
                 }
                 setLetterStatuses(updatedStatuses);
 
-                //Fin de partie
+                //FIN DE PARTIE
                 //si le joueur gagne
                 if (data.isWon) {
                     setGameStatus('won');
