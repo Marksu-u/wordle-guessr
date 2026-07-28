@@ -6,14 +6,15 @@ interface WordleGridProps {
   wordLength: number;
   evaluations: ('correct' | 'present' | 'absent')[][]; // Reçoit l'historique des couleurs du serveur
   maxAttempts?: number;
+  isShaking?: boolean;
 }
 
-export default function WordleGrid({ guesses, currentGuess, wordLength, evaluations, maxAttempts = 6 }: WordleGridProps) {
+export default function WordleGrid({ guesses, currentGuess, wordLength, evaluations, maxAttempts = 6, isShaking }: WordleGridProps) {
   const totalRows = maxAttempts;
 
   return (
-    <div className="flex flex-col gap-2 my-6">
-      {Array.from({ length: totalRows }).map((_, rowIndex) => {
+    <div className="flex flex-col gap-2">
+      {Array.from({ length: maxAttempts }).map((_, rowIndex) => {
         const isCurrentRow = rowIndex === guesses.length;
         const isPastRow = rowIndex < guesses.length;
         
@@ -22,7 +23,7 @@ export default function WordleGrid({ guesses, currentGuess, wordLength, evaluati
         if (isCurrentRow) rowWord = currentGuess;
 
         return (
-          <div key={rowIndex} className="flex gap-2 justify-center">
+          <div key={rowIndex} className={`flex gap-2 ${isCurrentRow && isShaking ? 'animate-shake' : ''}`}>
             {Array.from({ length: wordLength }).map((_, letterIndex) => {
               const letter = rowWord[letterIndex] || '';
               
