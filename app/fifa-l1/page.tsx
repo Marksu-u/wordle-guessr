@@ -2,6 +2,7 @@ import Image from 'next/image'
 import WordleGame from '@/components/WordleGame';
 import Link from 'next/link';
 import Score from '@/components/Score';
+import Hint from '@/components/Hint';
 
 export default function FifaPage() {
     return (
@@ -18,6 +19,10 @@ export default function FifaPage() {
                     <div className="flex flex-col mt-6 items-center">
                         <Score/>
                         <FifaImage/>
+
+                        <div className="mt-14 flex justify-center w-full">
+                            <Hint/>
+                        </div>
                     </div>
                     
                     <div className='w-full max-w-xl'>
