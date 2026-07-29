@@ -319,6 +319,48 @@ export default function WordleGame() {
     //Recherche du meilleur score
     const bestScore = allScores.length > 0 ? Math.max(...allScores) : 0;
 
+    //Bouton indice
+    useEffect(() => {
+        const handleIndice = async () => {
+            if (gameStatus !== 'playing') return;
+
+            try {
+                //Recherche du mot secret sur le serveur
+                const response = await fetch(`/api/game?length=${wordLength}&hint=true`);
+                const data = await response.json();
+
+                if (data.secret) {
+                    const motSecret = data.secret as string;
+                    const lettresSecretes = motSecret.split('');
+
+                    //Recherche des lettres qui ne sont ni vertes ni jaunes sur le clavier
+                    const lettresManquantes = lettresSecretes.filter(
+                        lettre => letterStatuses[lettre] !== 'correct' && letterStatuses[lettre] !== 'present'
+                    );
+
+                    if (lettresManquantes.length > 0) {
+                        //Pioch au hasard d'une lettre du mot
+                        const randomLettre = lettresManquantes[Math.floor(Math.random() * lettresManquantes.length)];
+
+                        //Coloration de la lettre en jaune, elle passe en mode 'present'
+                        setLetterStatuses(prev => ({
+                            ...prev,
+                            [randomLettre]: 'present'
+                        }));
+                    } else {
+                        //Si toutes les lettres sont trouvées
+                        setToastMessage("Vous avez déjà trouvé toutes les lettres !");
+                        setTimeout(() => setToastMessage(null), 2000);
+                    }
+                }
+        } catch (error) {
+            console.error("Erreur lors de la récupération de l'indice");
+        }
+    };
+
+    window.addEventListener('demande-indice', handleIndice);
+    return () => window.removeEventListener('demande-indice', handleIndice);
+}, [wordLength, letterStatuses, gameStatus]);
 
     // AFFICHAGE
     return (
