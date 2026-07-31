@@ -155,6 +155,12 @@ export default function WordleGame() {
         }
     };
 
+    useEffect(() => {
+        if (isInitialized && solution === '' && gameStatus === 'playing') {
+            startNewGame(wordLength);
+        }
+    }, [isInitialized, solution]);
+
     //Relance de la partie si user clique sur bouton de taille
     const handleLengthChange = (newLength: number) => {
         if (isLoading || newLength === wordLength) return;
