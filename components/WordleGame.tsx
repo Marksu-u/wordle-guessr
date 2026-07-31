@@ -9,7 +9,8 @@ import Keyboard from './Keyboard';
 export default function WordleGame() {
     //OPTIONS DU JEU
     const [wordLength, setWordLength] = useState(5); //5 lettres par defaut
-    const maxAttempts = 6; // 6 essais par mot
+    const [solution, setSolution] = useState<string>(''); //stockage du mot correct à afficher à la fin
+    const maxAttempts = 6;
 
     // ETATS DU JEU
     const [guesses, setGuesses] = useState<string[]>([]);
@@ -17,20 +18,19 @@ export default function WordleGame() {
     const [evaluations, setEvaluations] = useState<('correct' | 'present' | 'absent')[][]>([]);
     //Mot en cours de saisie
     const [currentGuess, setCurrentGuess] = useState('');
-
     const [letterStatuses, setLetterStatuses] = useState<{ [key: string]: 'correct' | 'present' | 'absent' }>({});
     const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
 
-    const [solution, setSolution] = useState<string>(''); //stockage du mot correct à afficher à la fin
     //Blocage double-clic
     const [isLoading, setIsLoading] = useState(false);
-
     //Etat pour animation du clavier physique
     const [activeKey, setActiveKey] = useState<string | null>(null);
-
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     //Mouvement des cases quand le mot n'existe pas
     const [isShaking, setIsShaking] = useState(false);
+    //Mémoire des indices
+    const [indicesUtilises, setIndicesUtilises] = useState(0);
+
     // GESTION DU SCORE ET LOCALSTORAGE
     const [historiqueScores, setHistoriqueScores] = useState<Record<string, number>>({});
 
@@ -42,9 +42,9 @@ export default function WordleGame() {
         gameStatus: 'playing' | 'won' | 'lost';
         solution: string;
     };
+
     //Dictionnaire des parties en cours
     const [savedGames, setSavedGames] = useState<Record<number, Gamestate>>({});
-
     //Sécurité de sauvegarde
     const [isInitialized, setIsInitialized] = useState(false);
 
@@ -74,13 +74,14 @@ export default function WordleGame() {
             const parsedSaves = JSON.parse(partiesSave);
             setSavedGames(parsedSaves);
 
-            if (parsedSaves[5] && parsedSaves[5].guesses.length > 0) {
-                const s = parsedSaves[5];
+            if (parsedSaves[initialSize] && parsedSaves[initialSize].guesses.length > 0) {
+                const s = parsedSaves[initialSize];
                 setGuesses(s.guesses);
                 setEvaluations(s.evaluations);
                 setLetterStatuses(s.letterStatuses);
                 setGameStatus(s.gameStatus);
                 setSolution(s.solution);
+                setIndicesUtilises(s.indicesUtilises || 0);
             }
         }
         setIsInitialized(true);
@@ -95,29 +96,30 @@ export default function WordleGame() {
         setSavedGames(prev => {
             const newState = {
                 ...prev,
-                [wordLength]: { guesses, evaluations, letterStatuses, gameStatus, solution }
+                [wordLength]: { guesses, evaluations, letterStatuses, gameStatus, solution, indicesUtilises }
             };
             localStorage.setItem('ligue1-parties-en-cours', JSON.stringify(newState));
             return newState;
         })
-    }, [guesses, evaluations, letterStatuses, gameStatus, solution, wordLength, isInitialized]);
+    }, [guesses, evaluations, letterStatuses, gameStatus, solution, wordLength, indicesUtilises, isInitialized]);
 
     //Sauvegarde du score
     const enregistrerScoreDuJour = (scoreObtenu: number) => {
+        console.log("Victoire! Points gagnés : ", scoreObtenu);
         const dateDuJour = new Date().toISOString().split('T')[0];
+        //Lecture de l'historique
+        const donneesSave = localStorage.getItem('ligue1-historique');
+        const historique = donneesSave ? JSON.parse(donneesSave) : {};
+        //Récuperation du score du jour
+        const scoreExistant = historique[dateDuJour] || 0;
 
-        setHistoriqueScores((ancienHistorique) => {
-            //Verification si score existant aujourd'hui
-            const scoresDuJour = ancienHistorique[dateDuJour] || [];
+        //Addition avec les nouveaux points
+        historique[dateDuJour] = Math.max(scoreExistant, scoreObtenu);
+        //Destruction de l'ancienne sauvegarde par la nouvelle
+        localStorage.setItem('ligue1-historique', JSON.stringify(historique));
+        console.log("Nouvel historique enregistré : ", historique);
 
-            //Ajout du nouveau score à la fin de la liste
-            const nouvelHistorique = {
-                ...ancienHistorique,
-                [dateDuJour]: bestScore
-            };
-            localStorage.setItem('ligue1-historique', JSON.stringify(nouvelHistorique));
-            return nouvelHistorique;
-        });
+        //Rafraichissement du component Score
         window.dispatchEvent(new Event('maj-score'));
     };
 
@@ -126,15 +128,17 @@ export default function WordleGame() {
         setIsLoading(true);
         try {
             const response = await fetch(`/api/game?length=${lengthToSet}`, { method: 'GET' });
+            const data = await response.json();
 
-            if (response.ok){
+            if (data.secret){
+                setSolution(data.secret);
                 setWordLength(lengthToSet);
                 setGuesses([]);
                 setEvaluations([]);
                 setCurrentGuess('');
                 setLetterStatuses({});
                 setGameStatus('playing');
-                setSolution('');
+                setIndicesUtilises(0);
 
                 //Efface l'ancienne sauvegarde pour cette taille
                 setSavedGames(prev => {
@@ -170,6 +174,28 @@ export default function WordleGame() {
             startNewGame(newLength);
         }
     };
+    //Calcul des couleurs sans le serveur
+    const evaluerEssai = (essai: string, motSecret: string) => {
+        const resultat = Array(essai.length).fill('absent') as ('correct' | 'present' | 'absent')[];
+        const lettresSecretes = motSecret.split('');
+        const lettresEssai = essai.split('');
+
+        //1er passage : Lettres vertes
+        for (let i = 0; i < essai.length; i++) {
+            if (lettresEssai[i] === lettresSecretes[i]) {
+                resultat[i] = 'correct';
+                lettresSecretes[i] = null as any;
+            }
+        }
+        //2e passage : Lettres jaunes
+        for (let i = 0; i < essai.length; i++) {
+            if (resultat[i] !== 'correct' && lettresSecretes.includes(lettresEssai[i])) {
+                resultat[i] = 'present';
+                lettresSecretes[lettresSecretes.indexOf(lettresEssai[i])] = null as any;
+            }
+        }
+        return resultat;
+    }
 
     //Gestion des touches
     const handleKeyPress = async (key: string) => {
@@ -189,90 +215,57 @@ export default function WordleGame() {
                     return;
             }
 
-            try {
-                //Envoi de la proposition de mot au serveur
-                const response = await fetch('/api/game', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ guess: currentGuess.toUpperCase(),
-                        isLastAttempt: guesses.length >= (maxAttempts - 1)
-                     }),
-                });
+            const currentEval = evaluerEssai(currentGuess.toUpperCase(), solution);
+            const newGuesses = [...guesses, currentGuess.toUpperCase()];
 
-                const data = await response.json();
+            setGuesses(newGuesses);
+            setEvaluations([...evaluations, currentEval]);
 
-                if (!response.ok) {
-                    //Affichage du message d'erreur
-                    setToastMessage("Mot introuvable dans la liste");
-                    // On le fait disparaître après 2 secondes
-                    setTimeout(() => setToastMessage(null), 2000);
-                    setIsShaking(true);//Mouvement des cases
-                    setTimeout(() => setIsShaking(false), 400);
-                    return;//le mot est bloqué
-                }
+            //Maj touches du clavier
+            const updatedStatuses = { ...letterStatuses };
+            for (let i = 0; i < currentGuess.length; i++) {
+                const char = currentGuess[i].toUpperCase();
+                const resultStatus = currentEval[i];
 
-                //Recuperarion des couleurs
-                const currentEval: ('correct' | 'present' | 'absent')[] = data.evaluation;
-
-                //Maj historique des mots et des couleurs
-                const newGuesses = [...guesses, currentGuess.toUpperCase()];
-                setGuesses(newGuesses);
-                setEvaluations([...evaluations, currentEval]);
-
-                //Maj touches du clavier
-                const updatedStatuses = { ...letterStatuses };
-                for (let i = 0; i < currentGuess.length; i++) {
-                    const char = currentGuess[i].toUpperCase();
-                    const resultStatus = currentEval[i];
-
-                    //Priorité des couleurs sur le clavier
-                    if (resultStatus === 'correct') {
-                        updatedStatuses[char] = 'correct';
-                    } else if (resultStatus === 'present') {
-                        if (updatedStatuses[char] !== 'correct') {
-                            updatedStatuses[char] = 'present';
-                        }
-                    } else if (resultStatus === 'absent') {
-                        if (updatedStatuses[char] !== 'correct' && updatedStatuses[char] !== 'present') {
-                            updatedStatuses[char] = 'absent';
-                        }
+                if (resultStatus === 'correct') {
+                    updatedStatuses[char] = 'correct';
+                } else if (resultStatus === 'present') {
+                    if (updatedStatuses[char] !== 'correct') {
+                        updatedStatuses[char] = 'present';
+                    }
+                } else if (resultStatus === 'absent') {
+                    if (updatedStatuses[char] !== 'correct' && updatedStatuses[char] !== 'present') {
+                        updatedStatuses[char] = 'absent';
                     }
                 }
-                setLetterStatuses(updatedStatuses);
-
-                //FIN DE PARTIE
-                //si le joueur gagne
-                if (data.isWon) {
-                    setGameStatus('won');
-                    //Calcul du score selon le nombre d'essais
-                    const pointsGagnes = maxAttempts - newGuesses.length + 1;
-                    // Sauvegarde dans le dico avec la date
-                    enregistrerScoreDuJour(pointsGagnes);
-
-                }   else if (newGuesses.length >= maxAttempts) {
-                    //si le joueur perd 
-                    setGameStatus('lost');
-                    if (data.solution) {
-                        setSolution(data.solution);
-                        //Sauvegarde de la défaite (0 points)
-                        enregistrerScoreDuJour(0);
-                        
-                    } else {
-                        setSolution("INTROUVABLE");
-                    }
-                }
-
-                setCurrentGuess('');
-            }   catch (error) {
-                alert("Impossible de contacter le serveur.");
             }
-        }
+            setLetterStatuses(updatedStatuses);
 
-        else {
-            if (currentGuess.length < wordLength&& key.length === 1) {
+            //FIN DE PARTIE
+            //Vérification des lettres, si elles sont "correct"
+            const isWon = currentEval.every(status => status === 'correct');
+
+            if (isWon) {
+                //En cas de victoire
+                setGameStatus('won');
+                let pointsGagnes = maxAttempts - newGuesses.length + 1;
+                pointsGagnes = pointsGagnes - indicesUtilises;
+                if (pointsGagnes < 1) pointsGagnes = 1;
+                enregistrerScoreDuJour(pointsGagnes);
+
+            //En cas de défaite
+            } else if (newGuesses.length >= maxAttempts) {
+                setGameStatus('lost');
+                enregistrerScoreDuJour(0);
+            }
+            
+            setCurrentGuess('');
+        } else {
+            if (currentGuess.length < wordLength && key.length === 1) {
                 setCurrentGuess((prev) => prev + key.toUpperCase());
             }
         }
+
     };
 
     //Gerer le clavier physique
@@ -313,54 +306,38 @@ export default function WordleGame() {
         };
     }, [wordLength, currentGuess, guesses, gameStatus ]);
     
-    //Récupération des scores 
-    const allScores = Object.values(historiqueScores);
-
-    //Recherche du meilleur score
-    const bestScore = allScores.length > 0 ? Math.max(...allScores) : 0;
-
     //Bouton indice
     useEffect(() => {
         const handleIndice = async () => {
-            if (gameStatus !== 'playing') return;
+            if (gameStatus !== 'playing' || !solution) return;
 
-            try {
-                //Recherche du mot secret sur le serveur
-                const response = await fetch(`/api/game?length=${wordLength}&hint=true`);
-                const data = await response.json();
+            //Recherche de lettres ni vertes ni jaunes
+            const lettresSecretes = solution.split('');
+            const lettresManquantes = lettresSecretes.filter(
+                lettre => letterStatuses[lettre] !== 'correct' && letterStatuses[lettre] !== 'present'
+            );
 
-                if (data.secret) {
-                    const motSecret = data.secret as string;
-                    const lettresSecretes = motSecret.split('');
+            if (lettresManquantes.length > 0) {
+                //Pioche au hasard d'une lettre du mot
+                const randomLettre = lettresManquantes[Math.floor(Math.random() * lettresManquantes.length)];
+                //Coloration de la lettre en jaune, elle passe en mode 'present'
+                setLetterStatuses(prev => ({
+                    ...prev,
+                    [randomLettre]: 'present'
+                }));
 
-                    //Recherche des lettres qui ne sont ni vertes ni jaunes sur le clavier
-                    const lettresManquantes = lettresSecretes.filter(
-                        lettre => letterStatuses[lettre] !== 'correct' && letterStatuses[lettre] !== 'present'
-                    );
-
-                    if (lettresManquantes.length > 0) {
-                        //Pioch au hasard d'une lettre du mot
-                        const randomLettre = lettresManquantes[Math.floor(Math.random() * lettresManquantes.length)];
-
-                        //Coloration de la lettre en jaune, elle passe en mode 'present'
-                        setLetterStatuses(prev => ({
-                            ...prev,
-                            [randomLettre]: 'present'
-                        }));
-                    } else {
-                        //Si toutes les lettres sont trouvées
-                        setToastMessage("Vous avez déjà trouvé toutes les lettres !");
-                        setTimeout(() => setToastMessage(null), 2000);
-                    }
-                }
-        } catch (error) {
-            console.error("Erreur lors de la récupération de l'indice");
-        }
-    };
-
-    window.addEventListener('demande-indice', handleIndice);
-    return () => window.removeEventListener('demande-indice', handleIndice);
-}, [wordLength, letterStatuses, gameStatus]);
+                //Enregistrement de l'utilisation d'un indice
+                setIndicesUtilises(prev => prev + 1);
+            } else {
+                //Si toutes les lettres sont trouvées
+                setToastMessage("Vous avez déjà trouvé toutes les lettres !");
+                setTimeout(() => setToastMessage(null), 2000);
+            }
+        };
+         
+        window.addEventListener('demande-indice', handleIndice);
+        return () => window.removeEventListener('demande-indice', handleIndice);
+    }, [letterStatuses, gameStatus, solution]);
 
     // AFFICHAGE
     return (
