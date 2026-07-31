@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import MotsServeur from '@/data/ligue1/wordle.json';
+import motsJson from '@/app/data/ligue1/wordle.json';
+
+
+const MotsServeur = motsJson.words as Record<string, string[]>;
 
 //Démarrage ou reinitialisation du jeu
 export async function GET(request: Request){
@@ -7,9 +10,9 @@ export async function GET(request: Request){
   const length = searchParams.get('length') || "5";
 
   //Recuperation de la liste des mots en fonction de la taille
-  const listeDeMots = MotsServeur[length as keyof typeof MotsServeur];
+  const listeDeMots = MotsServeur[length];
 
-  if (!listeDeMots) {
+  if (!listeDeMots || listeDeMots.length === 0) {
     return NextResponse.json({ error: "Taille non supportée"}, { status: 400 });
   }
 
