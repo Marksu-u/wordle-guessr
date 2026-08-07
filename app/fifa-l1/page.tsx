@@ -11,8 +11,8 @@ export default function FifaPage() {
                     Wordle - Ligue 1
                 </h1>
 
-                <p className='mb-8 text-center font-mono'>Retrouvez le nom d'un joueur du championnat 
-                    français</p>
+                <p className='mb-8 text-center font-mono'>Retrouvez le nom d&apos;un joueur du
+                    championnat français</p>
 
                 <div className='flex flex-col md:flex-row gap-8 md:gap-16 justify-center items-center 
                 md:items-start w-full flex-grow'>

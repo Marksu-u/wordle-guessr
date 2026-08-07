@@ -1,71 +1,90 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import { dateDuJour } from "@/lib/daily";
+import { EVENEMENT_MAJ_SCORE } from "@/lib/evenements";
+import { multiplicateurSerie } from "@/lib/scoring";
+import {
+  lireStats,
+  scoreDuJour,
+  serieEffective,
+  statsParDefaut,
+  type StatsJoueur,
+} from "@/lib/stats";
 
+/** Score du jour, série en cours et records du joueur. */
 export default function Score() {
-    const [meilleurScore, setMeilleurScore] = useState(0);
-    const [dateRecord, setDateRecord] = useState<string | null>(null);
+  // On part des stats vides : le localStorage n'existe pas côté serveur, et
+  // lire dans un effet évite toute différence entre serveur et client.
+  const [stats, setStats] = useState<StatsJoueur>(statsParDefaut);
+  const [aujourdhui, setAujourdhui] = useState<string | null>(null);
 
-    useEffect(() => {
-
-        const chargerScore = () => {
-            const donneesSave = localStorage.getItem('ligue1-historique');
-            if (donneesSave) {
-                const historique = JSON.parse(donneesSave);
-                let maxScore = 0;
-                let bestDate = null;
-
-                for (const [date, value] of Object.entries(historique)) {
-                    const scores = Array.isArray(value) ? value : [value];
-                    const localMax = Math.max(...(scores as number[]));
-
-                    if (localMax > maxScore) {
-                        maxScore = localMax;
-                        bestDate = date;
-                    }
-                }
-
-                if (maxScore > 0) {
-                    setMeilleurScore(maxScore);
-                    setDateRecord(bestDate);
-                }
-            }
-        };
-
-        chargerScore();
-
-        window.addEventListener('maj-score', chargerScore);
-
-        return () => {
-            window.removeEventListener('maj-score', chargerScore);
-        };
-    }, []);
-
-    const formatDate = (dateIso: string) => {
-        if (!dateIso) return '';
-        const [annee, mois, jour] = dateIso.split('-');
-        return `${jour}/${mois}/${annee}`;
+  useEffect(() => {
+    const rafraichir = () => {
+      setStats(lireStats());
+      setAujourdhui(dateDuJour());
     };
 
-    return (
-        <div className="flex flex-col items-start mb-4 mt-5">
-            <span className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-2 ml-3">
-                Record Personnel
-            </span>
+    rafraichir();
+    window.addEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
+    return () => window.removeEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
+  }, []);
 
-            <div className="flex items-center gap-2 bg-blue-600 px-6 py-2 rounded-2xl ring-2 
-            ring-blue-400 shadow-sm ml-6">
-                <span className="font-mono font-black text-white tracking-wider">
-                    {meilleurScore} PTS
-                </span>
-            </div>
+  const serie = aujourdhui ? serieEffective(stats, aujourdhui) : 0;
+  const points = aujourdhui ? scoreDuJour(stats, aujourdhui) : 0;
 
-            {dateRecord && (
-                <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider
-                mt-3 ml-9">
-                    {formatDate(dateRecord)}
-                </span>
-            )}
+  return (
+    <div className="flex w-full max-w-[240px] flex-col gap-4">
+      <div>
+        <span className="mb-2 block font-mono text-xs tracking-widest text-zinc-400 uppercase">
+          Score du jour
+        </span>
+        <div className="flex items-baseline gap-2 rounded-2xl bg-blue-600 px-6 py-2 ring-2 ring-blue-400">
+          <span className="font-mono text-2xl font-black text-white">
+            {points}
+          </span>
+          <span className="font-mono text-xs text-blue-100">PTS</span>
         </div>
-    );
+      </div>
+
+      <div>
+        <span className="mb-2 block font-mono text-xs tracking-widest text-zinc-400 uppercase">
+          Série en cours
+        </span>
+        <div
+          className={`flex items-baseline gap-2 rounded-2xl px-6 py-2 ring-2 ${
+            serie > 0
+              ? "bg-orange-600 ring-orange-400"
+              : "bg-zinc-800 ring-zinc-700"
+          }`}
+        >
+          <span className="font-mono text-2xl font-black text-white">
+            {serie > 0 ? `${serie} 🔥` : "—"}
+          </span>
+          {serie > 0 && (
+            <span className="font-mono text-xs text-orange-100">
+              x{multiplicateurSerie(serie).toFixed(1)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <dl className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 font-mono text-xs text-zinc-400">
+        <div className="flex justify-between">
+          <dt>Record de points</dt>
+          <dd className="font-bold text-white">{stats.meilleurScore}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>Meilleure série</dt>
+          <dd className="font-bold text-white">{stats.meilleureSerie}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>Victoires</dt>
+          <dd className="font-bold text-white">
+            {stats.victoires}/{stats.partiesJouees}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
 }

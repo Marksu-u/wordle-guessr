@@ -10,8 +10,6 @@ interface WordleGridProps {
 }
 
 export default function WordleGrid({ guesses, currentGuess, wordLength, evaluations, maxAttempts = 6, isShaking }: WordleGridProps) {
-  const totalRows = maxAttempts;
-
   return (
     <div className="flex flex-col gap-2">
       {Array.from({ length: maxAttempts }).map((_, rowIndex) => {
@@ -29,7 +27,7 @@ export default function WordleGrid({ guesses, currentGuess, wordLength, evaluati
               
               // Style par défaut
               let bgColor = 'bg-zinc-800/80 border-zinc-700';
-              let textColor = 'text-white';
+              const textColor = 'text-white';
 
               // Si c'est une ligne passée, on applique la couleur stockée par le serveur
               if (isPastRow && letter && evaluations[rowIndex]) {
