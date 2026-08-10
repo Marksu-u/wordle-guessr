@@ -1,92 +1,363 @@
 "use client";
 
 // import de tous les components
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import WordleGrid from './WordleGrid';
 import Keyboard from './Keyboard';
+import Countdown from './Countdown';
+import DevSolution from "./DevSolution";
+import { compareWords, type LettreStatut } from "@/lib/compare";
+import type { ReponseMotDuJour } from "@/lib/daily";
+import { EVENEMENT_DEMANDE_INDICE } from "@/lib/events";
+import { MAX_ESSAIS, MAX_INDICES, calculerScore } from "@/lib/scoring";
+import {
+    ecrireDerniereTaille,
+    ecrireSauvegarde,
+    lireDernieretaille,
+    lireSauvegarde,
+    partieVierge,
+    type EtatPartie,
+    type SauvegardeDuJour,
+} from "@/lib/sauvegarde";
 
+const LONGUEURS_DISPONIBLES = [4, 5, 6, 7, 8];
+const LONGUEUR_PAR_DEFAUT = 5;
+
+//Couleur des touches du clavier apres un essai (vert -> jaune -> gris)
+function fusionnerStatuts(
+    statuts: Record<string, LettreStatut>,
+    essai: string,
+    evaluation: LettreStatut[],
+): Record<string, LettreStatut> {
+    const priorite = { absent: 0, present: 1, correct: 2 };
+    const suivants = { ...statuts };
+
+    for (let i = 0; i < essai.length; i++) {
+        const ancien = suivants[essai[i]];
+        if (!ancien || priorite[evaluation[i]] > priorite[ancien]) {
+            suivants[essai[i]] = evaluation[i];
+        }
+    }
+    return suivants;
+}
 
 export default function WordleGame() {
-    //OPTIONS DU JEU
-    const [wordLength, setWordLength] = useState(5); //5 lettres par defaut
-    const [solution, setSolution] = useState<string>(''); //stockage du mot correct à afficher à la fin
-    const maxAttempts = 6;
+    const [wordLength, setWordLength] = useState(LONGUEUR_PAR_DEFAUT); //5 lettres par defaut
+    const [currentGuess, setCurrentGuess] = useState("");
 
-    // ETATS DU JEU
-    const [guesses, setGuesses] = useState<string[]>([]);
-    //Stockage des couleurs
-    const [evaluations, setEvaluations] = useState<('correct' | 'present' | 'absent')[][]>([]);
-    //Mot en cours de saisie
-    const [currentGuess, setCurrentGuess] = useState('');
-    const [letterStatuses, setLetterStatuses] = useState<{ [key: string]: 'correct' | 'present' | 'absent' }>({});
-    const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+    //Copie de toutes les grilles du jour (chaque taille) dans le localStorage
+    const [sauvegarde, setSauvegarde] = useState<SauvegardeDuJour | null>(null);
+    const [numeroGrille, setNumeroGrille] = useState<number | null>(null);
 
     //Blocage double-clic
     const [isLoading, setIsLoading] = useState(false);
-    //Etat pour animation du clavier physique
+
+    const [erreur, setErreur] = useState(false);
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
-    //Mouvement des cases quand le mot n'existe pas
     const [isShaking, setIsShaking] = useState(false);
-    //Mémoire des indices
-    const [indicesUtilises, setIndicesUtilises] = useState(0);
 
-    // GESTION DU SCORE ET LOCALSTORAGE
-    const [historiqueScores, setHistoriqueScores] = useState<Record<string, number>>({});
+    const partie = sauvegarde?.parties[wordLength] ?? null;
 
-    // TIROIR SAUVEGARDE DES PARTIES EN COURS
-    type Gamestate = {
-        guesses: string[];
-        evaluations: ('correct' | 'present' | 'absent')[][];
-        letterStatuses: { [key: string]: 'correct' | 'present' | 'absent' };
-        gameStatus: 'playing' | 'won' | 'lost';
-        solution: string;
-    };
-
-    //Dictionnaire des parties en cours
-    const [savedGames, setSavedGames] = useState<Record<number, Gamestate>>({});
-    //Sécurité de sauvegarde
-    const [isInitialized, setIsInitialized] = useState(false);
-
-    
-    //Chargement 
-    useEffect(() => {
-        const donneesSave = localStorage.getItem('ligue1-historique');
-        if (donneesSave) setHistoriqueScores(JSON.parse(donneesSave));
-
-        //Vérification de date pour supprimer les essais
-        const dateDuJour = new Date().toISOString().split('T')[0];
-        const dateDernierePartie = localStorage.getItem('ligue1-date-derniere-partie');
-
-        if (dateDernierePartie !== dateDuJour) {
-            localStorage.removeItem('ligue1-parties-en-cours');
-            localStorage.setItem('ligeue1-date-derniere-partie', dateDuJour);
-        }
-
-        //Recuperation de la derniere taille 
-        const lastSizeSaved = localStorage.getItem('ligue1-derniere-taille');
-        const initialSize = lastSizeSaved ? parseInt(lastSizeSaved) : 5;
-
-        setWordLength(initialSize);
-        
-        const partiesSave = localStorage.getItem('ligue1-parties-en-cours');
-        if (partiesSave) {
-            const parsedSaves = JSON.parse(partiesSave);
-            setSavedGames(parsedSaves);
-
-            if (parsedSaves[initialSize] && parsedSaves[initialSize].guesses.length > 0) {
-                const s = parsedSaves[initialSize];
-                setGuesses(s.guesses);
-                setEvaluations(s.evaluations);
-                setLetterStatuses(s.letterStatuses);
-                setGameStatus(s.gameStatus);
-                setSolution(s.solution);
-                setIndicesUtilises(s.indicesUtilises || 0);
-            }
-        }
-        setIsInitialized(true);
+    const afficherToast = useCallback((message: string) => {
+        setToastMessage(message);
+        setTimeout(() => setToastMessage(null), 2500);
     }, []);
 
+    //La grille courante est mise en mémoire et dans le localStorage
+    const majPartie = useCallback((longueur: number, nouvelle: EtatPartie) => {
+        setSauvegarde((precedente) => {
+            if (!precedente) return precedente;
+            const suivante = {
+                date: precedente.date,
+                parties: { ...precedente.parties, [longueur]: nouvelle },
+            };
+            ecrireSauvegarde(suivante);
+            return suivante;
+        });
+    }, []);
+
+    //Charge du mot du jour : grille vierge ou celle commencée auj
+    const chargerGrille = useCallback(async (longueur: number) => {
+        try {
+            const response = await fetch(`/api/game?length=${longueur}`);
+            if (!response.ok) throw new Error(`API: ${response.status}`);
+            const data: ReponseMotDuJour = await response.json();
+
+            //lireSauvegarde jette automatiquement les anciennes grilles
+            const enCache = lireSauvegarde(data.date);
+            const existante = enCache.parties[longueur];
+            //Si le mot change, on repart de 0
+            const grille = existante?.solution === data.secret 
+            ? existante : partieVierge(data.secret);
+
+            const aJour = { 
+                date: data.date,
+                parties: { ...enCache.parties, [longueur]: grille},
+            };
+            ecrireSauvegarde(aJour);
+            ecrireDerniereTaille(longueur);
+
+            setSauvegarde(aJour);
+            setNumeroGrille(data.numero);
+            setWordLength(longueur);
+            setCurrentGuess("");
+            setErreur(false);
+        } catch (error) {
+            console.error(error);
+            setErreur(true);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    //Synchronisation : reprise de la derniere longueur jouée
+    useEffect(() => {
+        chargerGrille(lireDernieretaille(LONGUEUR_PAR_DEFAUT));
+    }, [chargerGrille]);
+
+    const changerLongueur = (longueur: number) => {
+        if (isLoading) return;
+        setIsLoading(true);
+        chargerGrille(longueur);
+    };
+
+    //Gestion du clavier physique
+    const handleKeyPress = (key: string) => {
+        if (!partie || !sauvegarde || partie.statut !== "playing") return;
+
+        if (key === "SUPPRIMER") {
+        setCurrentGuess((prev) => prev.slice(0, -1));
+        return;
+        }
+
+        if (key !== "ENTRER") {
+        if (key.length === 1 && currentGuess.length < wordLength) {
+            setCurrentGuess((prev) => prev + key.toUpperCase());
+        }
+        return;
+        }
+
+        if (currentGuess.length !== wordLength) {
+            afficherToast(`Le mot doit faire ${wordLength} lettres`);
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 400);
+            return;
+        }
+
+        const essai = currentGuess.toUpperCase();
+        const evaluation = compareWords(essai, partie.solution);
+        const essais = [...partie.essais, essai];
+        const gagne = evaluation.every((statut) => statut === "correct");
+        const perdu = !gagne && essais.length >= MAX_ESSAIS;
+
+        const grille: EtatPartie = {
+            ...partie,
+            essais,
+            evaluations: [...partie.evaluations, evaluation],
+            statutsLettres: fusionnerStatuts(
+                partie.statutsLettres,
+                essai,
+                evaluation,
+            ),
+            statut: gagne ? "won" : perdu ? "lost" : "playing",
+        };
+
+        if (gagne || perdu ) {
+            const stats = lireStats();
+            const date = sauvegarde.date;
+
+            grille.score = calculerScore({
+                gagne,
+                essaisUtilises: essais.length,
+                indicesUtilises: partie.indicesUtilises,
+                longueurMot: partie.solution.length,
+            });
+
+            ecrireStats(
+                enregistrerPartie(stats, { date, gagne, score: grille.score }),
+            );
+            notifierMajScore();
+        }
+
+        majPartie(wordLength, grille);
+        setCurrentGuess("");
+    };
+
+    //L'ecoute du clavier est posée qu'une fois, la ref lui donne toujours la derniere version
+    const handleKeyPressRef = useRef(handleKeyPress);
+    useEffect(() => {
+        handleKeyPressRef.current = handleKeyPress;
+    });
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            const touche = event.key.toUpperCase();
+
+            let action: string | null = null;
+            if (event.key === "Enter") action = "ENTRER";
+            else if (event.key === "Backspace") action = "SUPPRIMER";
+            else if (/^[A-Z]$/.test(touche)) action = touche;
+            if (!action) return;
+
+            setActiveKey(action);
+            setTimeout(() => setActiveKey(null), 150);
+            handleKeyPressRef.current(action);
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, []);
+
+    //Bouton indice
+    useEffect(() => {
+    const surDemandeIndice = () => {
+      if (!partie || partie.statut !== "playing") return;
+      if (partie.indicesUtilises >= MAX_INDICES) {
+        afficherToast(`${MAX_INDICES} indices maximum par grille.`);
+        return;
+      }
+
+      //Lettres du mot ni vertes ni jaunes sur le clavier
+      const manquantes = [...new Set(partie.solution.split(""))].filter(
+        (lettre) =>
+          partie.statutsLettres[lettre] !== "correct" &&
+          partie.statutsLettres[lettre] !== "present",
+      );
+
+      if (manquantes.length === 0) {
+        afficherToast("Tu as déjà trouvé toutes les lettres !");
+        return;
+      }
+
+      const lettre = manquantes[Math.floor(Math.random() * manquantes.length)];
+      majPartie(wordLength, {
+        ...partie,
+        statutsLettres: { ...partie.statutsLettres, [lettre]: "present" },
+        indicesUtilises: partie.indicesUtilises + 1,
+      });
+      afficherToast(`Indice : le mot contient un ${lettre} (score réduit)`);
+    };
+
+    window.addEventListener(EVENEMENT_DEMANDE_INDICE, surDemandeIndice);
+    return () =>
+      window.removeEventListener(EVENEMENT_DEMANDE_INDICE, surDemandeIndice);
+  }, [partie, wordLength, majPartie, afficherToast]);
+
+  return (
+    <div className="flex w-full flex-col items-center p-4">
+      {/* GRILLE DU JOUR */}
+      <div className="mb-6 flex flex-col items-center gap-1">
+        <span className="font-mono text-xs tracking-widest text-zinc-400 uppercase">
+          {numeroGrille !== null ? `Grille n°${numeroGrille}` : "Chargement..."}
+        </span>
+        <span className="font-mono text-[11px] text-zinc-500">
+          Le même mot pour tout le monde, chaque jour.
+        </span>
+      </div>
+
+      {/* SELECTEUR TAILLE MOT */}
+      <div className="mb-10 flex w-full flex-col items-center">
+        <span className="mb-2 font-mono text-xs tracking-wider text-zinc-400 uppercase">
+          Longueur du mot
+        </span>
+        <div className="flex gap-2">
+          {LONGUEURS_DISPONIBLES.map((longueur) => (
+            <button
+              key={longueur}
+              disabled={isLoading}
+              onClick={() => changerLongueur(longueur)}
+              className={`rounded-lg px-3 py-1.5 font-mono text-sm font-bold transition-all ${
+                wordLength === longueur
+                  ? "scale-105 bg-blue-600 text-white ring-2 ring-blue-400"
+                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white"
+              }`}
+            >
+              {longueur}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Message temporaire */}
+      {toastMessage && (
+        <div className="absolute top-38 z-50 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 font-bold tracking-wider text-white shadow-2xl">
+          {toastMessage}
+        </div>
+      )}
+
+      {erreur && (
+        <button
+          onClick={() => changerLongueur(wordLength)}
+          className="mb-4 rounded-lg border border-red-800 bg-red-950/30 px-4 py-3 font-mono text-sm text-red-400"
+        >
+          Mot du jour indisponible — réessayer
+        </button>
+      )}
+
+      <WordleGrid
+        guesses={partie?.essais ?? []}
+        currentGuess={currentGuess}
+        wordLength={wordLength}
+        evaluations={partie?.evaluations ?? []}
+        maxAttempts={MAX_ESSAIS}
+        isShaking={isShaking}
+      />
+
+      {/* FIN DE GRILLE : pas de "Rejouer", il faut attendre demain */}
+      {partie && partie.statut !== "playing" && (
+        <div className="mt-8 flex w-full max-w-xs flex-col items-center gap-3">
+          <p className="text-lg font-bold">
+            {partie.statut === "won" ? "Gagné !" : "Dommage..."}
+          </p>
+
+          {partie.statut === "lost" && (
+            <div className="w-full rounded-xl border border-green-800 bg-green-950/20 p-3 text-center">
+              <p className="font-mono text-xs tracking-widest text-green-600 uppercase">
+                La réponse correcte est :
+              </p>
+              <p className="mt-1 font-mono text-xl font-black tracking-widest text-green-500 uppercase">
+                {partie.solution}
+              </p>
+            </div>
+          )}
+
+          <p className="font-mono text-sm text-zinc-300">
+            <span className="font-black text-white">{partie.score ?? 0}</span>{" "}
+            points
+          </p>
+
+          <div className="mt-2 text-center">
+            <p className="font-mono text-xs tracking-widest text-zinc-400 uppercase">
+              Prochain mot dans
+            </p>
+            <Countdown
+              onFin={() => changerLongueur(wordLength)}
+              className="font-mono text-2xl font-black tracking-widest text-blue-400"
+            />
+            <p className="mt-2 font-mono text-[11px] text-zinc-500">
+              En attendant, tente une autre longueur de mot.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <DevSolution solution={partie?.solution ?? ""} />
+
+      {/* LE CLAVIER VIRTUEL */}
+      <div className="mt-12 w-full">
+        <Keyboard
+          onKeyPress={handleKeyPress}
+          letterStatuses={partie?.statutsLettres ?? {}}
+          activeKey={activeKey}
+        />
+      </div>
+    </div>
+  );
+}
+    
+/** 
     //Sauvegarde automatique
     useEffect(() => {
         if (!isInitialized) return;
@@ -312,34 +583,7 @@ export default function WordleGame() {
         };
     }, [wordLength, currentGuess, guesses, gameStatus ]);
     
-    //Bouton indice
-    useEffect(() => {
-        const handleIndice = async () => {
-            if (gameStatus !== 'playing' || !solution) return;
-
-            //Recherche de lettres ni vertes ni jaunes
-            const lettresSecretes = solution.split('');
-            const lettresManquantes = lettresSecretes.filter(
-                lettre => letterStatuses[lettre] !== 'correct' && letterStatuses[lettre] !== 'present'
-            );
-
-            if (lettresManquantes.length > 0) {
-                //Pioche au hasard d'une lettre du mot
-                const randomLettre = lettresManquantes[Math.floor(Math.random() * lettresManquantes.length)];
-                //Coloration de la lettre en jaune, elle passe en mode 'present'
-                setLetterStatuses(prev => ({
-                    ...prev,
-                    [randomLettre]: 'present'
-                }));
-
-                //Enregistrement de l'utilisation d'un indice
-                setIndicesUtilises(prev => prev + 1);
-            } else {
-                //Si toutes les lettres sont trouvées
-                setToastMessage("Vous avez déjà trouvé toutes les lettres !");
-                setTimeout(() => setToastMessage(null), 2000);
-            }
-        };
+    
          
         window.addEventListener('demande-indice', handleIndice);
         return () => window.removeEventListener('demande-indice', handleIndice);
@@ -348,7 +592,7 @@ export default function WordleGame() {
     // AFFICHAGE
     return (
         <div className='flex flex-col items-center w-full p-4'>
-            {/* SELECTEUR TAILLE MOT */}
+            {// SELECTEUR TAILLE MOT //}
             <div className='flex flex-col items-center mt-6 mb-12 w-full'>
                 <span className='text-xs font-mono uppercase tracking-wider text-zinc-400 mb-2'>
                     Longueur du mot
@@ -370,7 +614,7 @@ export default function WordleGame() {
                 </div>
             </div>
 
-        {/* Message d'erreur temporaire*/}
+        {// Message d'erreur temporaire//}
         {toastMessage && (
             <div className="absolute top-38 bg-zinc-900 text-white text-sm border border-zinc-700 px-4 py-3
             rounded-lg shadow-2xl z-50 font-bold tracking-wider">
@@ -386,7 +630,7 @@ export default function WordleGame() {
                     isShaking={isShaking}//prop du mouvement
                 />
 
-             {/* AFFICHAGE DU MOT CORRECT EN CAS DE DÉFAITE */}
+             {// AFFICHAGE DU MOT CORRECT EN CAS DE DÉFAITE //}
              { gameStatus === 'lost' && (
                 <div className='mt-8 mb-4 p-3 bg-green-950/20 border border-green-800 rounded-xl text-center
                 w-full max-w-xs animate-fade-in'>
@@ -399,7 +643,7 @@ export default function WordleGame() {
                 </div>
              )}
 
-            {/*Affichage du bouton "Rejouer" en cas de partie terminée*/}
+            {//Affichage du bouton "Rejouer" en cas de partie terminée//}
             {gameStatus !== 'playing' && (
                 <div className="flex flex-col items-center mt-7 gap-3 my-4 ">
                     <p className="text-lg font-bold">
@@ -417,7 +661,7 @@ export default function WordleGame() {
             
             )}
 
-            {/* LE CLAVIER VIRTUEL */}
+            {// LE CLAVIER VIRTUEL //}
             <div className="mt-12 w-full">
                 <Keyboard 
                     onKeyPress={handleKeyPress} 
@@ -428,4 +672,4 @@ export default function WordleGame() {
             
         </div>
     );
-}
+}*/
