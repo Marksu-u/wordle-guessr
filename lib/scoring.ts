@@ -1,0 +1,27 @@
+/** Score d'une grille */
+
+export const MAX_ESSAIS = 6;
+export const MAX_INDICES = 3;
+
+const POINTS_VICTOIRE = 100;
+const POINTS_PAR_ESSAIS_RESTANTS = 20;
+const POINTS_PAR_LETTRE_SUPP = 15;
+const MALUS_PAR_INDICE = 25;
+
+export type PartieTerminee = {
+    gagne: boolean;
+    essaisUtilises: number;
+    indicesUtilises: number;
+    longueurMot: number;
+};
+
+export function calculerScore(partie: PartieTerminee): number {
+    if (!partie.gagne) return 0;
+    
+    const essaisRestants = Math.max(MAX_ESSAIS - partie.essaisUtilises, 0);
+    const points = POINTS_VICTOIRE + essaisUtilises * POINTS_PAR_ESSAIS_RESTANTS +
+        Math.max(partie.longueurMot - 4, 0) * POINTS_PAR_LETTRE_SUPP -
+        partie.indicesUtilises * MALUS_PAR_INDICE;
+
+    return points;
+}
