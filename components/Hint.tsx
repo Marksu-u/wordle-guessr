@@ -31,3 +31,38 @@ export default function Hint() {
         </button>
     );
 }
+
+/**
+ *     //Bouton indice
+    useEffect(() => {
+        const handleIndice = async () => {
+            if (gameStatus !== 'playing' || !solution) return;
+
+            //Recherche de lettres ni vertes ni jaunes
+            const lettresSecretes = solution.split('');
+            const lettresManquantes = lettresSecretes.filter(
+                lettre => letterStatuses[lettre] !== 'correct' && letterStatuses[lettre] !== 'present'
+            );
+
+            if (lettresManquantes.length > 0) {
+                //Pioche au hasard d'une lettre du mot
+                const randomLettre = lettresManquantes[Math.floor(Math.random() * lettresManquantes.length)];
+                //Coloration de la lettre en jaune, elle passe en mode 'present'
+                setLetterStatuses(prev => ({
+                    ...prev,
+                    [randomLettre]: 'present'
+                }));
+
+                //Enregistrement de l'utilisation d'un indice
+                setIndicesUtilises(prev => prev + 1);
+            } else {
+                //Si toutes les lettres sont trouvées
+                setToastMessage("Vous avez déjà trouvé toutes les lettres !");
+                setTimeout(() => setToastMessage(null), 2000);
+            }
+        };
+         
+        window.addEventListener('demande-indice', handleIndice);
+        return () => window.removeEventListener('demande-indice', handleIndice);
+    }, [letterStatuses, gameStatus, solution]);
+ */
