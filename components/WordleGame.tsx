@@ -8,7 +8,7 @@ import Countdown from './Countdown';
 import DevSolution from "./DevSolution";
 import { compareWords, type LettreStatut } from "@/lib/compare";
 import type { ReponseMotDuJour } from "@/lib/daily";
-import { EVENEMENT_DEMANDE_INDICE } from "@/lib/events";
+import { EVENEMENT_DEMANDE_INDICE, EVENEMENT_MAJ_SCORE } from "@/lib/events";
 import { MAX_ESSAIS, MAX_INDICES, calculerScore } from "@/lib/scoring";
 import {
     ecrireDerniereTaille,
@@ -16,6 +16,8 @@ import {
     lireDernieretaille,
     lireSauvegarde,
     partieVierge,
+    lireHistorique,
+    ecrireHistorique,
     type EtatPartie,
     type SauvegardeDuJour,
 } from "@/lib/sauvegarde";
@@ -164,7 +166,7 @@ export default function WordleGame() {
         };
 
         if (gagne || perdu ) {
-            const stats = lireStats();
+            //const stats = lireStats();
             const date = sauvegarde.date;
 
             grille.score = calculerScore({
@@ -174,10 +176,18 @@ export default function WordleGame() {
                 longueurMot: partie.solution.length,
             });
 
-            ecrireStats(
-                enregistrerPartie(stats, { date, gagne, score: grille.score }),
-            );
-            notifierMajScore();
+            //Lecture de l'historique
+            const historique = lireHistorique();
+
+            //Verification points aujourd'hui
+            const scoreExistant = historique[date] || 0;
+
+            //Meilleur score gardé et sauvegarde
+            historique[date] = Math.max(scoreExistant, grille.score);
+            ecrireHistorique(historique);
+
+            window.dispatchEvent(new Event(EVENEMENT_MAJ_SCORE));
+
         }
 
         majPartie(wordLength, grille);
