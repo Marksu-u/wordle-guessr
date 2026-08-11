@@ -9,6 +9,7 @@ import type { LettreStatut } from "./compare";
 //Sécurité : mise en variables des variables localStorage
 export const CLE_PARTIES = "ligue1-parties";
 export const CLE_DERNIERE_TAILLE = "ligue1-dernieree-taille";
+export const CLE_HISTORIQUE = "ligue1-historique";
 
 export type StatutPartie = "playing" | "won" | "lost";
 
@@ -76,3 +77,24 @@ export function ecrireDerniereTaille(taille: number): void {
     window.localStorage.setItem(CLE_DERNIERE_TAILLE, String(taille));
 }
 
+// -- GESTION DE L'HISTORIQUE -- 
+//Lecture de l'historique
+export function lireHistorique(): Record<string, number> {
+    if (typeof window === "undefined") return {};
+    try {
+        const brut = window.localStorage.getItem(CLE_HISTORIQUE);
+        return brut ? JSON.parse(brut) : {};
+    } catch {
+        return {};
+    }
+}
+
+//Sauvegarde de l'historique mis à jour
+export function ecrireHistorique(historique: Record<string, number>): void {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem(CLE_HISTORIQUE, JSON.stringify(historique));
+    } catch {
+        console.error("Erreur de sauvegarde de l'historique");
+    }
+}
