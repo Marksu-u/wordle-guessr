@@ -26,7 +26,7 @@ export function dateDuJour(maintenant: Date = new Date()): string {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-    }), format(maintenant);
+    }).format(maintenant);
 }
 
 function versUtc(dateIso: string): number {
@@ -78,7 +78,7 @@ export function msAvantProchainMot(maintenant: Date = new Date()): number {
     .split(":")
     .map(Number);
 
-    return ((23 - heures) * 3600 + (59 - minutes) * (60 - secondes)) * 1000;
+    return ((23 - heures) * 3600 + (59 - minutes) * 60 + (60 - secondes)) * 1000;
 }
 
 //Changement des ms en date
