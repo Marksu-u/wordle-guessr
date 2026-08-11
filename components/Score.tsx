@@ -1,71 +1,65 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { dateDuJour } from "@/lib/daily";
+import { EVENEMENT_MAJ_SCORE } from "@/lib/events";
+import { lireHistorique } from "@/lib/sauvegarde";
+
 
 export default function Score() {
-    const [meilleurScore, setMeilleurScore] = useState(0);
-    const [dateRecord, setDateRecord] = useState<string | null>(null);
+    
+    const [pointsDuJour, setPointsDuJour] = useState(0);
+    const [record, setRecord] = useState(0);
+    const [victoires, setVictoires] = useState(0);
+    const [partiesJouees, setPartiesJouees] = useState(0);
 
     useEffect(() => {
+        const rafraichir = () => {
+            const aujourdhui = dateDuJour();
+            const historique = lireHistorique();
+            const scores = Object.values(historique);
 
-        const chargerScore = () => {
-            const donneesSave = localStorage.getItem('ligue1-historique');
-            if (donneesSave) {
-                const historique = JSON.parse(donneesSave);
-                let maxScore = 0;
-                let bestDate = null;
+            setPointsDuJour(historique[aujourdhui] || 0);
+            setRecord(scores.length > 0 ? Math.max(...scores) : 0);
+            setPartiesJouees(scores.length);
 
-                for (const [date, value] of Object.entries(historique)) {
-                    const scores = Array.isArray(value) ? value : [value];
-                    const localMax = Math.max(...(scores as number[]));
-
-                    if (localMax > maxScore) {
-                        maxScore = localMax;
-                        bestDate = date;
-                    }
-                }
-
-                if (maxScore > 0) {
-                    setMeilleurScore(maxScore);
-                    setDateRecord(bestDate);
-                }
-            }
+            setVictoires(scores.filter(score => score > 0).length);
         };
 
-        chargerScore();
-
-        window.addEventListener('maj-score', chargerScore);
-
-        return () => {
-            window.removeEventListener('maj-score', chargerScore);
-        };
-    }, []);
-
-    const formatDate = (dateIso: string) => {
-        if (!dateIso) return '';
-        const [annee, mois, jour] = dateIso.split('-');
-        return `${jour}/${mois}/${annee}`;
-    };
+    rafraichir();
+    window.addEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
+    return () => window.removeEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
+  }, []);
+    
 
     return (
-        <div className="flex flex-col items-start mb-4 mt-5">
-            <span className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-2 ml-3">
-                Record Personnel
-            </span>
-
-            <div className="flex items-center gap-2 bg-blue-600 px-6 py-2 rounded-2xl ring-2 
-            ring-blue-400 shadow-sm ml-6">
-                <span className="font-mono font-black text-white tracking-wider">
-                    {meilleurScore} PTS
+        <div className="flex w-full max-w-[240px] flex-col gap-4">
+            <div>
+                <span className="mb-2 block font-mono text-xs tracking-widest text-zinc-400 uppercase">
+                    Score du jour
                 </span>
+
+                <div className="flex items-baseline gap-2 rounded-2xl bg-blue-600 px-6 py-2  ring-2 
+                ring-blue-400">
+                    <span className="font-mono text-2xl font-black text-white">
+                        {pointsDuJour}
+                    </span>
+                    <span className="font-mono text-xs text-blue-100">PTS</span>
+                </div>
             </div>
 
-            {dateRecord && (
-                <span className="text-xs font-mono text-zinc-500 uppercase tracking-wider
-                mt-3 ml-9">
-                    {formatDate(dateRecord)}
-                </span>
-            )}
+            <dl className="rounded-xl border border border-zinc-800 bg-zinc-900/60 p-3 font-mono text-xs text-zinc-400">
+                <div className="flex justify-between">
+                    <dt>Record de points</dt>
+                    <dd className="font-bold text-white">{record}</dd>
+                </div>
+                <div className="flex justify-between">
+                    <dt>Victoires</dt>
+                    <dd className="font-bold text-white">
+                        {victoires}/{partiesJouees}
+                    </dd>
+                </div>
+            </dl>
         </div>
     );
 }
