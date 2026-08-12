@@ -50,11 +50,11 @@ export default function Score() {
 
             <dl className="rounded-xl border border border-zinc-800 bg-zinc-900/60 p-3 font-mono text-xs text-zinc-400">
                 <div className="flex justify-between">
-                    <dt>Record de points</dt>
-                    <dd className="font-bold text-white">{record}</dd>
+                    <dt>Record de points </dt>
+                    <dd className="font-bold text-white"> {record}</dd>
                 </div>
                 <div className="flex justify-between">
-                    <dt>Victoires</dt>
+                    <dt>Victoires </dt>
                     <dd className="font-bold text-white">
                         {victoires}/{partiesJouees}
                     </dd>
