@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { dateDuJour } from "@/lib/daily";
 import { EVENEMENT_MAJ_SCORE } from "@/lib/events";
-import { lireHistorique } from "@/lib/sauvegarde";
+import { lireHistorique, lireStatsGlobales } from "@/lib/sauvegarde";
 
 
 export default function Score() {
