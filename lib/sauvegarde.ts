@@ -8,8 +8,9 @@ import type { LettreStatut } from "./compare";
 
 //Sécurité : mise en variables des variables localStorage
 export const CLE_PARTIES = "ligue1-parties";
-export const CLE_DERNIERE_TAILLE = "ligue1-dernieree-taille";
+export const CLE_DERNIERE_TAILLE = "ligue1-derniere-taille";
 export const CLE_HISTORIQUE = "ligue1-historique";
+export const CLE_STATS = "ligue1-stats";
 
 export type StatutPartie = "playing" | "won" | "lost";
 
@@ -26,6 +27,12 @@ export type EtatPartie = {
 export type SauvegardeDuJour = {
     date: string;
     parties: Record<string, EtatPartie>;
+};
+
+export type StatsGlobales = {
+    partiesJouees: number;
+    victoires: number;
+    record: number;
 };
 
 export function partieVierge(solution: string): EtatPartie {
@@ -48,7 +55,7 @@ export function lireSauvegarde(dateDuJour: string): SauvegardeDuJour {
     try {
         const brut = window.localStorage.getItem(CLE_PARTIES);
         const sauvegarde = brut ? (JSON.parse(brut) as SauvegardeDuJour) : null;
-        if (sauvegarde?.date !== dateDuJour || sauvegarde.parties) {
+        if (sauvegarde?.date !== dateDuJour || !sauvegarde.parties) {
             return { date: dateDuJour, parties: {} };
         }
         return sauvegarde;
@@ -86,6 +93,26 @@ export function lireHistorique(): Record<string, number> {
         return brut ? JSON.parse(brut) : {};
     } catch {
         return {};
+    }
+}
+
+// -- GESTION DES STATS GLOBALES --
+export function lireStatsGlobales(): StatsGlobales | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const brut = window.localStorage.getItem(CLE_STATS);
+        return brut ? (JSON.parse(brut) as StatsGlobales) : null;
+    } catch {
+        return null;
+    }
+}
+
+export function ecrireStatsGlobales(stats: StatsGlobales): void {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem(CLE_STATS, JSON.stringify(stats));
+    } catch {
+        console.error("Erreur de sauvegarde des statistiques");
     }
 }
 
