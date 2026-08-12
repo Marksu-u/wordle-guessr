@@ -27,7 +27,7 @@ export default function DevSolution({ solution }: { solution: string }) {
             <button
                 onClick={() => setEpingle((prev) => !prev)}
                 onMouseEnter={() => setSurvol(true)}
-                onMouseLeave={() => setSurvol(true)}
+                onMouseLeave={() => setSurvol(false)}
                 title="Révéler le mot du jour (dev)"
                 className="flex h-8 w-8 items-center justify-center rounded-full border 
                 border-zinc-700 bg-zinc-900 text-zinc-500 opacity-30 transition-opacity
