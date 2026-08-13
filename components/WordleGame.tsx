@@ -9,22 +9,11 @@ import DevSolution from "./DevSolution";
 import { compareWords, type LettreStatut } from "@/lib/compare";
 import type { ReponseMotDuJour } from "@/lib/daily";
 import { EVENEMENT_DEMANDE_INDICE, EVENEMENT_MAJ_SCORE } from "@/lib/events";
-import { MAX_ESSAIS, MAX_INDICES, calculerScore } from "@/lib/scoring";
+import { MAX_ESSAIS, calculerMaxIndices, calculerScore } from "@/lib/scoring";
 import motsJson from "@/app/data/ligue1/wordle.json";
-import {
-    ecrireDerniereTaille,
-    ecrireSauvegarde,
-    lireDernieretaille,
-    lireSauvegarde,
-    partieVierge,
-    lireHistorique,
-    ecrireHistorique,
-    lireStatsGlobales,
-    ecrireStatsGlobales,
-    type StatsGlobales,
-    type EtatPartie,
-    type SauvegardeDuJour,
-} from "@/lib/sauvegarde";
+import { ecrireDerniereTaille, ecrireSauvegarde, lireDernieretaille, lireSauvegarde, partieVierge, 
+  lireHistorique, ecrireHistorique, lireStatsGlobales, ecrireStatsGlobales, type StatsGlobales, 
+  type EtatPartie, type SauvegardeDuJour, } from "@/lib/sauvegarde";
 
 const LONGUEURS_DISPONIBLES = [4, 5, 6, 7, 8];
 const LONGUEUR_PAR_DEFAUT = 5;
@@ -41,13 +30,13 @@ function fusionnerStatuts(
     const suivants = { ...statuts };
 
     for (let i = 0; i < essai.length; i++) {
-        const ancien = suivants[essai[i]];
-        if (!ancien || priorite[evaluation[i]] > priorite[ancien]) {
-            suivants[essai[i]] = evaluation[i];
-        }
+      const ancien = suivants[essai[i]];
+      if (!ancien || priorite[evaluation[i]] > priorite[ancien]) {
+          suivants[essai[i]] = evaluation[i];
+      }
     }
     return suivants;
-}
+  }
 
 export default function WordleGame() {
     const [wordLength, setWordLength] = useState(LONGUEUR_PAR_DEFAUT); //5 lettres par defaut
@@ -64,6 +53,8 @@ export default function WordleGame() {
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [isShaking, setIsShaking] = useState(false);
+
+    const [isReportClosed, setIsReportClosed] = useState(false);
 
     const partie = sauvegarde?.parties[wordLength] ?? null;
 
@@ -155,10 +146,19 @@ export default function WordleGame() {
 
         const essai = currentGuess.toUpperCase();
 
+        //Bouclier anti doublons
+        if (partie.essais.includes(essai)) {
+          afficherToast("Tu as déjà essayé ce mot !");
+          setIsShaking(true);
+          setTimeout(() => setIsShaking(false), 400);
+          return;
+        }
+
+        //Bouclier anti mots inventés
         const listeDeMots = MotsClient[wordLength.toString()] || [];
-
-        const motValide = listeDeMots.includes(essai.toLowerCase());
-
+        const motValide = listeDeMots.some(
+          (motDuDictionnaire) => motDuDictionnaire.toUpperCase() === essai.toUpperCase()
+        );
         if (!motValide) {
           afficherToast("Ce mot n'est pas dans la liste !");
           setIsShaking(true);
@@ -185,12 +185,12 @@ export default function WordleGame() {
 
             //Lecture de l'historique
             const historique = lireHistorique();
-
             //Verification points aujourd'hui
             const scoreExistant = historique[date] || 0;
-
+            //Addition du nouveau score avec l'existant
+            const nouveauScoreDuJour = scoreExistant + (scoreObtenu || 0);
             //Meilleur score gardé et sauvegarde
-            historique[date] = Math.max(scoreExistant, scoreObtenu || 0);
+            historique[date] = nouveauScoreDuJour;
             ecrireHistorique(historique);
 
             const statsCourantes = lireStatsGlobales();
@@ -199,7 +199,8 @@ export default function WordleGame() {
             
             stats.partiesJouees += 1;
             if (gagne) stats.victoires += 1;
-            stats.record = Math.max(stats.record, scoreObtenu || 0);
+
+            stats.record = Math.max(stats.record, nouveauScoreDuJour);
 
             ecrireStatsGlobales(stats);
 
@@ -253,8 +254,11 @@ export default function WordleGame() {
     useEffect(() => {
     const surDemandeIndice = () => {
       if (!partie || partie.statut !== "playing") return;
-      if (partie.indicesUtilises >= MAX_INDICES) {
-        afficherToast(`${MAX_INDICES} indices maximum par grille.`);
+
+      const limiteIndices = calculerMaxIndices(wordLength);
+
+      if (partie.indicesUtilises >= limiteIndices) {
+        afficherToast(`${limiteIndices} indices maximum par grille.`);
         return;
       }
 
@@ -283,6 +287,11 @@ export default function WordleGame() {
     return () =>
       window.removeEventListener(EVENEMENT_DEMANDE_INDICE, surDemandeIndice);
   }, [partie, wordLength, majPartie, afficherToast]);
+
+const toutesGrillesJouees = sauvegarde ? LONGUEURS_DISPONIBLES.every((longueur) => 
+  sauvegarde.parties[longueur] && sauvegarde.parties[longueur].statut !== 'playing'): false;
+
+const scoreTotalDuJour = sauvegarde ? (lireHistorique()[sauvegarde.date] || 0): 0;
 
   return (
     <div className="flex w-full flex-col items-center p-4">
@@ -384,7 +393,45 @@ export default function WordleGame() {
       )}
 
       <DevSolution solution={partie?.solution ?? ""} />
+      {/* MESSAGE DE FIN DE JOURNEE */}
+      {toutesGrillesJouees && !isReportClosed && (
+        <div 
+          onClick={() => setIsReportClosed(true)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4
+          backdrop-blur-sm">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm rounded-3xl border border-blue-600/30 bg-zinc-900
+            p-8 text-center shadow-2xl">
+            {/* Bouton pour fermer la fenetre */}
+            <button
+              onClick={() => setIsReportClosed(true)}
+              className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-full
+              bg-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white">
+                x
+              </button>
+              <h2 className="font-mono text-lg font-bold tracking-widest text-blue-500 uppercase">
+                Bilan du Jour
+              </h2>
+              <p className="mt-3 text-sm text-zinc-400">
+                Mission accomplie, tu as terminé toutes les grilles de la journée !
+              </p>
 
+              <div className="mt-6 rounded-2xl bg-zinc-950 py-4">
+                <p className="font-mono text-xs tracking-widest text-zinc-500 uppercase">
+                  Score Total</p>
+                <p className="mt-1 font-mono text-3xl font-black text-white">
+                  {scoreTotalDuJour} <span className="text-sm text-zinc-500">PTS</span>
+                </p>
+              </div>
+
+              <p className="mt-6 font-mono text-xs tracking-widest text-blue-400/50 uppercase">
+                Reviens demain pour de nouveaux mots
+              </p>
+          </div>
+        </div>
+      )}
+      
       {/* LE CLAVIER VIRTUEL */}
       <div className="mt-12 w-full">
         <Keyboard
