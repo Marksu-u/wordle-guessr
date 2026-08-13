@@ -17,19 +17,24 @@ export default function Score() {
         const rafraichir = () => {
             const aujourdhui = dateDuJour();
             const historique = lireHistorique();
-            const scores = Object.values(historique);
-
             setPointsDuJour(historique[aujourdhui] || 0);
-            setRecord(scores.length > 0 ? Math.max(...scores) : 0);
-            setPartiesJouees(scores.length);
+            const stats = lireStatsGlobales();
 
-            setVictoires(scores.filter(score => score > 0).length);
+            if (stats) {
+                setRecord(stats.record);
+                setPartiesJouees(stats.partiesJouees);
+                setVictoires(stats.victoires);
+            } else {
+                setRecord(0);
+                setPartiesJouees(0);
+                setVictoires(0);
+            }
         };
 
-    rafraichir();
-    window.addEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
-    return () => window.removeEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
-  }, []);
+        rafraichir();
+        window.addEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
+        return () => window.removeEventListener(EVENEMENT_MAJ_SCORE, rafraichir);
+    }, []);
     
 
     return (
